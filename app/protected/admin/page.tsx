@@ -13,29 +13,12 @@ async function UserDetails() {
     redirect("/auth/login");
   }
 
-  const userId = data.claims.sub;
-
-  const { data: employee, error: empError } = await supabase
-    .from("employees")
-    .select("id")
-    .eq("user_id", userId)
-    .single();
-
-  if (empError || !employee) {
-    return false;
-  }
-
-  const { data: roles, error: roleError } = await supabase
-    .from("employee_roles")
-    .select("role")
-    .eq("employee_id", employee.id)
-    .eq("role", "admin");
-
-  if (roleError || !roles || roles.length === 0) {
+  const userRole = data.claims["user_role"];
+  if (!userRole || userRole !== "admin") {
     redirect("/");
   }
 
-  return JSON.stringify(data.claims, null, 2);
+  return JSON.stringify(data, null, 2);
 }
 
 export default function ProtectedPage() {

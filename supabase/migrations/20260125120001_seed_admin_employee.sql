@@ -20,10 +20,10 @@ begin
   )
   returning id into v_employee_id;
 
-  -- Grant admin role
-  insert into public.employee_roles (employee_id, role, granted_by)
-  values (v_employee_id, 'admin', v_user_id)
-  on conflict (employee_id, role) do nothing;
+  -- Grant admin role in user_roles table
+  insert into public.user_roles (user_id, role, granted_by)
+  values (v_user_id, 'admin', v_user_id)
+  on conflict (user_id, role) do nothing;
 
   raise notice 'Admin employee created: id=%, user_id=%', v_employee_id, v_user_id;
 end
