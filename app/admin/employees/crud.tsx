@@ -32,12 +32,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  createEmployee,
-  updateEmployee,
-  deleteEmployees,
-  type ActionState,
-} from "./actions";
+import { upsertEmployee, deleteEmployees, type ActionState } from "./actions";
 
 interface Employee {
   id: number;
@@ -61,11 +56,10 @@ function EmployeeForm({
   onSuccess,
   onOpenChange,
 }: EmployeeFormProps) {
-  const action = employee ? updateEmployee : createEmployee;
   const [state, formAction, pending] = useActionState<
     ActionState | null,
     FormData
-  >(action, null);
+  >(upsertEmployee, null);
   const [formData, setFormData] = useState({
     first_name: employee?.first_name || "",
     last_name: employee?.last_name || "",
