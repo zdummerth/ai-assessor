@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -34,7 +35,7 @@ import {
 import {
   createEmployee,
   updateEmployee,
-  deleteEmployee,
+  deleteEmployees,
   type ActionState,
 } from "./actions";
 
@@ -217,26 +218,101 @@ function EmployeesList({ employees, onRefresh }: EmployeesListProps) {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
   const [deleteState, deleteAction, deletePending] = useActionState<
     ActionState | null,
     FormData
-  >(deleteEmployee, null);
+  >(deleteEmployees, null);
 
   useEffect(() => {
     if (deleteState?.success) {
       toast.success(deleteState.message);
       setDeletingId(null);
+      setSelectedIds([]);
+      setIsBulkDeleteOpen(false);
+      onRefresh?.();
     } else if (deleteState && !deleteState.success) {
       toast.error(deleteState.message);
     }
   }, [deleteState, onRefresh]);
 
+  const toggleSelectAll = () => {
+    if (selectedIds.length === employees.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(employees.map((emp) => emp.id));
+    }
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  };
+
   return (
     <div className="space-y-4">
+      {selectedIds.length > 0 && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">
+            {selectedIds.length} selected
+          </span>
+          <AlertDialog
+            open={isBulkDeleteOpen}
+            onOpenChange={setIsBulkDeleteOpen}
+          >
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="destructive">
+                Delete Selected
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <form action={deleteAction}>
+                <input
+                  type="hidden"
+                  name="ids"
+                  value={JSON.stringify(selectedIds)}
+                />
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Delete {selectedIds.length} employee
+                    {selectedIds.length > 1 ? "s" : ""}?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete the selected employees. This
+                    action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <Button
+                    type="submit"
+                    variant="destructive"
+                    disabled={deletePending}
+                  >
+                    {deletePending ? "Deleting..." : "Delete"}
+                  </Button>
+                </AlertDialogFooter>
+              </form>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm text-left">
           <thead>
             <tr className="border-b">
+              <th className="p-3">
+                <Checkbox
+                  checked={
+                    selectedIds.length === employees.length &&
+                    employees.length > 0
+                  }
+                  onCheckedChange={toggleSelectAll}
+                  aria-label="Select all"
+                />
+              </th>
               <th className="text-left p-3 font-medium">Name</th>
               <th className="text-left p-3 font-medium">Email</th>
               <th className="text-left p-3 font-medium">Hire Date</th>
@@ -248,6 +324,13 @@ function EmployeesList({ employees, onRefresh }: EmployeesListProps) {
           <tbody>
             {employees.map((emp) => (
               <tr key={emp.id} className="border-b hover:bg-muted/50">
+                <td className="p-3">
+                  <Checkbox
+                    checked={selectedIds.includes(emp.id)}
+                    onCheckedChange={() => toggleSelect(emp.id)}
+                    aria-label={`Select ${emp.first_name} ${emp.last_name}`}
+                  />
+                </td>
                 <td className="p-3">{`${emp.first_name} ${emp.last_name}`}</td>
                 <td className="p-3 text-muted-foreground">
                   {emp.email || "—"}
@@ -302,7 +385,11 @@ function EmployeesList({ employees, onRefresh }: EmployeesListProps) {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <form action={deleteAction}>
-                        <input type="hidden" name="id" value={emp.id} />
+                        <input
+                          type="hidden"
+                          name="ids"
+                          value={JSON.stringify([emp.id])}
+                        />
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete employee?</AlertDialogTitle>
                           <AlertDialogDescription>

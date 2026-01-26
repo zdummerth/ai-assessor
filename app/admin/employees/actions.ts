@@ -92,13 +92,19 @@ export async function updateEmployee(
   return { success: true, message: "Employee updated successfully", data };
 }
 
-export async function deleteEmployee(
+export async function deleteEmployees(
   prevState: ActionState | null,
   formData: FormData,
 ): Promise<ActionState> {
-  const id = parseInt(formData.get("id") as string);
+  const idsString = formData.get("ids") as string;
+  const ids = JSON.parse(idsString);
+
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return { success: false, message: "No employees selected" };
+  }
+
   const supabase = await createClient();
-  const { error } = await supabase.from("employees").delete().eq("id", id);
+  const { error } = await supabase.from("employees").delete().in("id", ids);
 
   if (error) {
     return { success: false, message: error.message };
@@ -106,5 +112,9 @@ export async function deleteEmployee(
 
   revalidatePath("/protected/admin/employees");
 
-  return { success: true, message: "Employee deleted successfully" };
+  const count = ids.length;
+  return {
+    success: true,
+    message: `${count} employee${count > 1 ? "s" : ""} deleted successfully`,
+  };
 }
