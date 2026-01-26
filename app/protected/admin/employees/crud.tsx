@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useActionState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -32,7 +31,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { createEmployee, updateEmployee, deleteEmployee } from "./actions";
+import {
+  createEmployee,
+  updateEmployee,
+  deleteEmployee,
+  type ActionState,
+} from "./actions";
 
 interface Employee {
   id: number;
@@ -56,7 +60,11 @@ function EmployeeForm({
   onSuccess,
   onOpenChange,
 }: EmployeeFormProps) {
-  const [loading, setLoading] = useState(false);
+  const action = employee ? updateEmployee : createEmployee;
+  const [state, formAction, pending] = useActionState<
+    ActionState | null,
+    FormData
+  >(action, null);
   const [formData, setFormData] = useState({
     first_name: employee?.first_name || "",
     last_name: employee?.last_name || "",
@@ -67,45 +75,25 @@ function EmployeeForm({
     termination_date: employee?.termination_date || "",
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      if (employee) {
-        const result = await updateEmployee(employee.id, formData);
-        if (result.success) {
-          toast.success("Employee updated");
-          onOpenChange?.(false);
-          onSuccess?.();
-        } else {
-          toast.error(result.error);
-        }
-      } else {
-        const result = await createEmployee(formData);
-        if (result.success) {
-          toast.success("Employee created");
-          onOpenChange?.(false);
-          onSuccess?.();
-        } else {
-          toast.error(result.error);
-        }
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Something went wrong");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (state?.success) {
+      toast.success(state.message);
+      onOpenChange?.(false);
+      onSuccess?.();
+    } else if (state && !state.success) {
+      toast.error(state.message);
     }
-  };
+  }, [state, onSuccess, onOpenChange]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form action={formAction} className="space-y-4">
+      {employee && <input type="hidden" name="id" value={employee.id} />}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="first_name">First Name</Label>
           <Input
             id="first_name"
+            name="first_name"
             required
             value={formData.first_name}
             onChange={(e) =>
@@ -117,6 +105,7 @@ function EmployeeForm({
           <Label htmlFor="last_name">Last Name</Label>
           <Input
             id="last_name"
+            name="last_name"
             required
             value={formData.last_name}
             onChange={(e) =>
@@ -130,6 +119,7 @@ function EmployeeForm({
         <Label htmlFor="email">Email</Label>
         <Input
           id="email"
+          name="email"
           type="email"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -141,6 +131,7 @@ function EmployeeForm({
           <Label htmlFor="hire_date">Hire Date</Label>
           <Input
             id="hire_date"
+            name="hire_date"
             type="date"
             required
             value={formData.hire_date}
@@ -153,6 +144,7 @@ function EmployeeForm({
           <Label htmlFor="status">Status</Label>
           <select
             id="status"
+            name="status"
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm"
             value={formData.status}
             onChange={(e) =>
@@ -171,6 +163,7 @@ function EmployeeForm({
           <Label htmlFor="role">Role</Label>
           <select
             id="role"
+            name="role"
             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm"
             value={formData.role}
             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
@@ -186,6 +179,7 @@ function EmployeeForm({
             <Label htmlFor="termination_date">Termination Date</Label>
             <Input
               id="termination_date"
+              name="termination_date"
               type="date"
               required
               value={formData.termination_date}
@@ -202,12 +196,12 @@ function EmployeeForm({
           type="button"
           variant="outline"
           onClick={() => onOpenChange?.(false)}
-          disabled={loading}
+          disabled={pending}
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : employee ? "Update" : "Create"}
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving..." : employee ? "Update" : "Create"}
         </Button>
       </DialogFooter>
     </form>
@@ -216,29 +210,26 @@ function EmployeeForm({
 
 interface EmployeesListProps {
   employees: Employee[];
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 function EmployeesList({ employees, onRefresh }: EmployeesListProps) {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteState, deleteAction, deletePending] = useActionState<
+    ActionState | null,
+    FormData
+  >(deleteEmployee, null);
 
-  const handleDelete = async (id: number) => {
-    try {
-      const result = await deleteEmployee(id);
-      if (result.success) {
-        toast.success("Employee deleted");
-        setDeletingId(null);
-        onRefresh();
-      } else {
-        toast.error(result.error);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to delete employee");
+  useEffect(() => {
+    if (deleteState?.success) {
+      toast.success(deleteState.message);
+      setDeletingId(null);
+    } else if (deleteState && !deleteState.success) {
+      toast.error(deleteState.message);
     }
-  };
+  }, [deleteState, onRefresh]);
 
   return (
     <div className="space-y-4">
@@ -310,22 +301,26 @@ function EmployeesList({ employees, onRefresh }: EmployeesListProps) {
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete employee?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will permanently delete {emp.first_name}{" "}
-                          {emp.last_name}. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          variant="destructive"
-                          onClick={() => handleDelete(emp.id)}
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
+                      <form action={deleteAction}>
+                        <input type="hidden" name="id" value={emp.id} />
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete employee?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete {emp.first_name}{" "}
+                            {emp.last_name}. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <Button
+                            type="submit"
+                            variant="destructive"
+                            disabled={deletePending}
+                          >
+                            {deletePending ? "Deleting..." : "Delete"}
+                          </Button>
+                        </AlertDialogFooter>
+                      </form>
                     </AlertDialogContent>
                   </AlertDialog>
                 </td>
@@ -344,29 +339,8 @@ function EmployeesList({ employees, onRefresh }: EmployeesListProps) {
   );
 }
 
-export default function EmployeesCrudUI() {
-  const [employees, setEmployees] = React.useState<Employee[]>([]);
-  const [loading, setLoading] = React.useState(true);
+export default function EmployeesCrudUI({ employees }: EmployeesListProps) {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
-
-  const fetchEmployees = React.useCallback(async () => {
-    try {
-      const { getEmployees } = await import("./actions");
-      const result = await getEmployees(100);
-      if (result.data) {
-        setEmployees(result.data);
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to load employees");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchEmployees();
-  }, [fetchEmployees]);
 
   return (
     <Card>
@@ -386,21 +360,12 @@ export default function EmployeesCrudUI() {
                 Add a new employee to the system
               </DialogDescription>
             </DialogHeader>
-            <EmployeeForm
-              onSuccess={fetchEmployees}
-              onOpenChange={setIsFormOpen}
-            />
+            <EmployeeForm onOpenChange={setIsFormOpen} />
           </DialogContent>
         </Dialog>
       </CardHeader>
       <CardContent>
-        {loading ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Loading...
-          </div>
-        ) : (
-          <EmployeesList employees={employees} onRefresh={fetchEmployees} />
-        )}
+        <EmployeesList employees={employees} />
       </CardContent>
     </Card>
   );

@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 export async function getEmployees(limit = 20, offset = 0) {
   const supabase = await createClient();
@@ -24,100 +25,86 @@ export async function getEmployeeById(id: number) {
   return { data, error };
 }
 
-export async function createEmployee(formData: {
-  first_name: string;
-  last_name: string;
-  email?: string;
-  hire_date: string;
-  user_id?: string;
-  status?: string;
-  role?: string;
-}) {
+export type ActionState = {
+  success: boolean;
+  message: string;
+  data?: unknown;
+};
+
+export async function createEmployee(
+  prevState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("employees")
     .insert([
       {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: formData.email || null,
-        hire_date: formData.hire_date,
-        user_id: formData.user_id || null,
-        status: formData.status || "active",
-        role: formData.role || "member",
+        first_name: formData.get("first_name") as string,
+        last_name: formData.get("last_name") as string,
+        email: (formData.get("email") as string) || null,
+        hire_date: formData.get("hire_date") as string,
+        user_id: (formData.get("user_id") as string) || null,
+        status: (formData.get("status") as string) || "active",
+        role: (formData.get("role") as string) || "member",
+        termination_date: (formData.get("termination_date") as string) || null,
       },
     ])
     .select()
     .single();
 
   if (error) {
-    return { success: false, error: error.message };
+    return { success: false, message: error.message };
   }
 
-  return { success: true, data };
+  revalidatePath("/protected/admin/employees");
+
+  return { success: true, message: "Employee created successfully", data };
 }
 
 export async function updateEmployee(
-  id: number,
-  updates: {
-    first_name?: string;
-    last_name?: string;
-    email?: string;
-    hire_date?: string;
-    termination_date?: string;
-    status?: string;
-    role?: string;
-  },
-) {
+  prevState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  const id = parseInt(formData.get("id") as string);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("employees")
-    .update(updates)
+    .update({
+      first_name: formData.get("first_name") as string,
+      last_name: formData.get("last_name") as string,
+      email: (formData.get("email") as string) || null,
+      hire_date: formData.get("hire_date") as string,
+      termination_date: (formData.get("termination_date") as string) || null,
+      status: formData.get("status") as string,
+      role: formData.get("role") as string,
+    })
     .eq("id", id)
     .select()
     .single();
 
   if (error) {
-    return { success: false, error: error.message };
+    return { success: false, message: error.message };
   }
 
-  return { success: true, data };
+  revalidatePath("/protected/admin/employees");
+
+  return { success: true, message: "Employee updated successfully", data };
 }
 
-export async function deleteEmployee(id: number) {
+export async function deleteEmployee(
+  prevState: ActionState | null,
+  formData: FormData,
+): Promise<ActionState> {
+  const id = parseInt(formData.get("id") as string);
   const supabase = await createClient();
   const { error } = await supabase.from("employees").delete().eq("id", id);
 
   if (error) {
-    return { success: false, error: error.message };
+    return { success: false, message: error.message };
   }
 
-  return { success: true };
-}
+  revalidatePath("/protected/admin/employees");
 
-export async function hasAdminRole() {
-  const supabase = await createClient();
-  const { data: user, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user.user) {
-    return false;
-  }
-
-  const { data: employee, error: empError } = await supabase
-    .from("employees")
-    .select("id")
-    .eq("user_id", user.user.id)
-    .single();
-
-  if (empError || !employee) {
-    return false;
-  }
-
-  const { data: roles, error: roleError } = await supabase
-    .from("employee_roles")
-    .select("role")
-    .eq("employee_id", employee.id)
-    .eq("role", "admin");
-
-  return !roleError && roles && roles.length > 0;
+  return { success: true, message: "Employee deleted successfully" };
 }

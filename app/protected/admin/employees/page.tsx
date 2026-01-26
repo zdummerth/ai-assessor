@@ -1,5 +1,16 @@
 // import { getEmployees } from "./actions";
 import EmployeesCrudUI from "./crud";
+import { getEmployees } from "./actions";
+import { Suspense } from "react";
+
+async function EmployeesList() {
+  const { data: employees, error } = await getEmployees();
+
+  if (error) {
+    return <div>Error loading employees: {error.message}</div>;
+  }
+  return <EmployeesCrudUI employees={employees || []} />;
+}
 
 export default async function AdminEmployeesPage() {
   //   const { data: employees } = await getEmployees();
@@ -12,7 +23,15 @@ export default async function AdminEmployeesPage() {
           Manage employees and permissions
         </p>
       </div>
-      <EmployeesCrudUI />
+      <Suspense
+        fallback={
+          <div className="text-center py-8 text-muted-foreground">
+            Loading employees...
+          </div>
+        }
+      >
+        <EmployeesList />
+      </Suspense>
     </div>
   );
 }
