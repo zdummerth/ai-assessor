@@ -13,10 +13,10 @@ async function UserDetails() {
     redirect("/auth/login");
   }
 
-  const userRole = data.claims["user_role"];
-  if (!userRole || userRole !== "admin") {
-    redirect("/");
-  }
+  // const userRole = data.claims["user_role"];
+  // if (!userRole || userRole !== "admin") {
+  //   redirect("/");
+  // }
 
   return JSON.stringify(data, null, 2);
 }

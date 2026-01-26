@@ -46,6 +46,7 @@ export async function updateSession(request: NextRequest) {
   // with the Supabase client, your users may be randomly logged out.
   const { data } = await supabase.auth.getClaims();
   const user = data?.claims;
+  const userRole = data?.claims["user_role"];
 
   if (
     request.nextUrl.pathname !== "/" &&
@@ -56,6 +57,13 @@ export async function updateSession(request: NextRequest) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
+    return NextResponse.redirect(url);
+  }
+
+  // Check admin routes require admin role
+  if (request.nextUrl.pathname.includes("/admin") && userRole !== "admin") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 

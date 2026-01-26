@@ -2,6 +2,7 @@
 import EmployeesCrudUI from "./crud";
 import { getEmployees } from "./actions";
 import { Suspense } from "react";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
 
 async function EmployeesList() {
   const { data: employees, error } = await getEmployees();
@@ -13,8 +14,6 @@ async function EmployeesList() {
 }
 
 export default async function AdminEmployeesPage() {
-  //   const { data: employees } = await getEmployees();
-
   return (
     <div className="flex-1 w-full flex flex-col gap-12">
       <div className="w-full">
@@ -23,13 +22,7 @@ export default async function AdminEmployeesPage() {
           Manage employees and permissions
         </p>
       </div>
-      <Suspense
-        fallback={
-          <div className="text-center py-8 text-muted-foreground">
-            Loading employees...
-          </div>
-        }
-      >
+      <Suspense fallback={<TableSkeleton />}>
         <EmployeesList />
       </Suspense>
     </div>
