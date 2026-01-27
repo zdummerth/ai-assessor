@@ -7,14 +7,40 @@
 
 create extension if not exists citext;
 
--- Custom types for roles and permissions (following Supabase RBAC pattern)
-create type public.app_role as enum ('admin', 'manager', 'member', 'viewer');
-create type public.app_permission as enum (
-  'employees.read',
-  'employees.write',
-  'employees.delete',
-  'roles.manage'
+-- Lookup tables for roles and permissions (replacing enums for flexibility)
+create table if not exists public.app_roles (
+  name text primary key check (length(name) > 0),
+  description text,
+  created_at timestamptz not null default now()
 );
+
+comment on table public.app_roles is 'Lookup table for application roles.';
+
+create table if not exists public.app_permissions (
+  name text primary key check (length(name) > 0),
+  description text,
+  created_at timestamptz not null default now()
+);
+
+comment on table public.app_permissions is 'Lookup table for application permissions.';
+
+-- Seed default roles
+insert into public.app_roles (name, description)
+values
+  ('admin', 'Full system access'),
+  ('manager', 'Manage employees and view data'),
+  ('member', 'Read employee data'),
+  ('viewer', 'View-only access')
+on conflict (name) do nothing;
+
+-- Seed default permissions
+insert into public.app_permissions (name, description)
+values
+  ('employees.read', 'View employee records'),
+  ('employees.write', 'Create and update employee records'),
+  ('employees.delete', 'Delete employee records'),
+  ('roles.manage', 'Manage user roles and permissions')
+on conflict (name) do nothing;
 
 create or replace function public.trigger_set_updated_at()
 returns trigger
@@ -35,7 +61,7 @@ create table if not exists public.employees (
   hire_date date not null,
   termination_date date null,
   status text not null default 'active',
-  role public.app_role not null default 'member',
+  role text not null default 'member',
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -43,6 +69,7 @@ create table if not exists public.employees (
   constraint employees_user_id_key unique (user_id),
   constraint employees_user_fk foreign key (user_id) references auth.users (id) on delete set null,
   constraint employees_created_by_fk foreign key (created_by) references auth.users (id) on delete restrict,
+  constraint employees_role_fk foreign key (role) references public.app_roles (name) on delete restrict,
   constraint employees_status_check check (status = any (array['active','leave','terminated'])),
   constraint employees_terminated_has_date check (status <> 'terminated' or termination_date is not null),
   constraint employees_hire_before_termination check (termination_date is null or termination_date >= hire_date)
@@ -59,7 +86,7 @@ comment on table public.employees is 'Employee records with role-based access co
 create table if not exists public.user_roles (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
-  role public.app_role not null,
+  role text not null references public.app_roles (name) on delete restrict,
   granted_by uuid not null default auth.uid() references auth.users (id) on delete restrict,
   created_at timestamptz not null default now(),
   constraint user_roles_unique unique (user_id, role)
@@ -73,15 +100,13 @@ comment on table public.user_roles is 'Application roles for each user.';
 -- Role permissions: defines what each role can do
 create table if not exists public.role_permissions (
   id bigint generated always as identity primary key,
-  role public.app_role not null,
-  permission public.app_permission not null,
+  role text not null references public.app_roles (name) on delete cascade,
+  permission text not null references public.app_permissions (name) on delete cascade,
   constraint role_permissions_unique unique (role, permission)
 );
 
 create index if not exists role_permissions_role_idx on public.role_permissions (role);
 create index if not exists role_permissions_permission_idx on public.role_permissions (permission);
-
-comment on table public.role_permissions is 'Application permissions for each role.';
 
 comment on table public.role_permissions is 'Application permissions for each role.';
 
@@ -106,7 +131,7 @@ stable
 as $$
   declare
     claims jsonb;
-    user_role public.app_role;
+    user_role text;
   begin
     -- Fetch the user role in the user_roles table
     select role into user_role from public.user_roles where user_id = (event->>'user_id')::uuid limit 1;
@@ -149,15 +174,15 @@ revoke all
 
 -- Authorize function: check if user's role has requested permission
 create or replace function public.authorize(
-  requested_permission app_permission
+  requested_permission text
 )
 returns boolean as $$
 declare
   bind_permissions int;
-  user_role public.app_role;
+  user_role text;
 begin
   -- Fetch user role from JWT
-  select (auth.jwt() ->> 'user_role')::public.app_role into user_role;
+  select auth.jwt() ->> 'user_role' into user_role;
 
   select count(*)
   into bind_permissions
@@ -249,7 +274,7 @@ using (
   or public.authorize('roles.manage')
 );
 
--- RLS for role_permissions: read-only for authenticated, service_role can modify
+-- RLS for role_permissions: admins can modify, everyone can read
 alter table public.role_permissions enable row level security;
 
 create policy role_permissions_select_all on public.role_permissions
@@ -257,8 +282,102 @@ for select
 to authenticated
 using (true);
 
-create policy role_permissions_modify_service on public.role_permissions
-for all
-to service_role
-using (true)
-with check (true);
+create policy role_permissions_insert_authorized on public.role_permissions
+for insert
+to authenticated
+with check (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+);
+
+create policy role_permissions_update_authorized on public.role_permissions
+for update
+to authenticated
+using (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+)
+with check (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+);
+
+create policy role_permissions_delete_authorized on public.role_permissions
+for delete
+to authenticated
+using (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+);
+
+-- RLS for app_roles lookup table: admins can modify, everyone can read
+alter table public.app_roles enable row level security;
+
+create policy app_roles_select_all on public.app_roles
+for select
+to authenticated
+using (true);
+
+create policy app_roles_insert_authorized on public.app_roles
+for insert
+to authenticated
+with check (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+);
+
+create policy app_roles_update_authorized on public.app_roles
+for update
+to authenticated
+using (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+)
+with check (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+);
+
+create policy app_roles_delete_authorized on public.app_roles
+for delete
+to authenticated
+using (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+);
+
+-- RLS for app_permissions lookup table: admins can modify, everyone can read
+alter table public.app_permissions enable row level security;
+
+create policy app_permissions_select_all on public.app_permissions
+for select
+to authenticated
+using (true);
+
+create policy app_permissions_insert_authorized on public.app_permissions
+for insert
+to authenticated
+with check (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+);
+
+create policy app_permissions_update_authorized on public.app_permissions
+for update
+to authenticated
+using (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+)
+with check (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+);
+
+create policy app_permissions_delete_authorized on public.app_permissions
+for delete
+to authenticated
+using (
+  auth.role() = 'service_role'
+  or public.authorize('roles.manage')
+);

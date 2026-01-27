@@ -1,28 +1,47 @@
-import EmployeesCrudUI from "./crud";
-import { getEmployees } from "./actions";
+import { getEmployees } from "./queries";
 import { Suspense } from "react";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { UpsertEmployeeFormDialog } from "./upsert-employee-form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import EmployeesTable from "./data-table";
 
-async function EmployeesList() {
+async function Employees() {
   const { data: employees, error } = await getEmployees();
 
   if (error) {
     return <div>Error loading employees: {error.message}</div>;
   }
-  return <EmployeesCrudUI employees={employees || []} />;
+
+  if (!employees || employees.length === 0) {
+    return <div>No employees found.</div>;
+  }
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Employees</CardTitle>
+          <CardDescription>Manage employee records and roles</CardDescription>
+        </div>
+        <UpsertEmployeeFormDialog />
+      </CardHeader>
+      <CardContent>
+        <EmployeesTable employees={employees} />
+      </CardContent>
+    </Card>
+  );
 }
 
 export default async function AdminEmployeesPage() {
   return (
     <div className="flex-1 w-full flex flex-col gap-12">
-      <div className="w-full">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage employees and permissions
-        </p>
-      </div>
       <Suspense fallback={<TableSkeleton />}>
-        <EmployeesList />
+        <Employees />
       </Suspense>
     </div>
   );
