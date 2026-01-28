@@ -2,15 +2,15 @@
 
 import { createClient } from "@/lib/supabase/server";
 
-export async function getEmployees(limit = 20, offset = 0) {
+export async function getEmployees(rangeStart = 0, rangeEnd = 9) {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from("employees")
     .select("*", { count: "exact" })
     .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+    .range(rangeStart, rangeEnd);
 
-  return { data, error, count: data?.length || 0 };
+  return { data, error, count };
 }
 
 export async function getEmployeeById(id: number) {
