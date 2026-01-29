@@ -11,6 +11,7 @@ export async function deleteRecords(
   const ids = JSON.parse(idsString);
   const revalidatePathValue = _formData.get("revalidatePath") as string;
   const table = _formData.get("table") as string;
+  const idColumn = (_formData.get("idColumn") as string) || "id";
 
   if (!Array.isArray(ids) || ids.length === 0) {
     return { success: false, message: "No records selected" };
@@ -18,7 +19,7 @@ export async function deleteRecords(
 
   const supabase = await createClient();
   //@ts-expect-error dynamic table name, but not returning data
-  const { error } = await supabase.from(table).delete().in("id", ids);
+  const { error } = await supabase.from(table).delete().in(idColumn, ids);
 
   if (error) {
     return { success: false, message: error.message };

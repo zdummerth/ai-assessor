@@ -17,7 +17,8 @@ import { deleteRecords } from "./server";
 
 interface DeleteButtonProps {
   table: string;
-  ids: number[];
+  ids: string[] | number[];
+  idColumn?: string;
   revalidatePath: string;
   onSuccess?: () => void;
   variant?:
@@ -33,6 +34,7 @@ interface DeleteButtonProps {
 export function DeleteButton({
   table,
   ids,
+  idColumn = "id",
   revalidatePath: revalidatePathValue,
   onSuccess,
   variant = "destructive",
@@ -72,6 +74,7 @@ export function DeleteButton({
         <form action={formAction}>
           <input type="hidden" name="ids" value={JSON.stringify(ids)} />
           <input type="hidden" name="table" value={table} />
+          <input type="hidden" name="idColumn" value={idColumn} />
           <input
             type="hidden"
             name="revalidatePath"
