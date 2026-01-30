@@ -1,6 +1,8 @@
 import { list } from "./queries";
 import { Suspense } from "react";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
+// import { AsyncSearchAppPermissions } from "@/components/ui/comboboxes/async-search-app-permissions";
+import { ComboboxAppPermissions } from "@/components/ui/comboboxes/combobox-app-permissions";
 import { UpsertFormDialog } from "./upsert-form";
 import {
   Card,
@@ -56,6 +58,8 @@ export default async function Page({
   const page = params?.page ? parseInt(params.page, 10) : 1;
   return (
     <div className="flex-1 w-full flex flex-col gap-12">
+      {/* <AsyncSearchAppPermissions /> */}
+      <ComboboxAppPermissions />
       <Suspense key={page} fallback={<TableSkeleton />}>
         <Table page={page} />
       </Suspense>

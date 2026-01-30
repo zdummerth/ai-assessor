@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { UpsertFormDialog } from "./upsert-form";
+import { UpsertRolePermissionFormDialog } from "../role-permission/upsert-form";
 import { DeleteButton } from "@/components/delete-button/client";
 import type { Tables } from "@/database-types";
 import { Rows3Icon } from "lucide-react";
@@ -64,7 +65,7 @@ export default function Table({ rows }: TableProps) {
               </th>
               <th className="text-left p-3 font-medium">Name</th>
               <th className="text-left p-3 font-medium">Description</th>
-              <th className="text-left p-3 font-medium">Role Permissions</th>
+              <th className="text-left p-3 font-medium">Permissions</th>
               <th className="text-left p-3 font-medium">Actions</th>
             </tr>
           </thead>
@@ -83,11 +84,15 @@ export default function Table({ rows }: TableProps) {
                   {r.description || "—"}
                 </td>
                 <td className="p-3 text-muted-foreground">
-                  {r.role_permissions && r.role_permissions.length > 0
-                    ? r.role_permissions.map((rp) => rp.permission).join(", ")
-                    : "—"}
+                  {r.role_permissions?.map((rp) => rp.permission).join(" - ")}
                 </td>
                 <td className="p-3 flex gap-2">
+                  <UpsertRolePermissionFormDialog
+                    role={r.name}
+                    initialData={
+                      r.role_permissions?.map((rp) => rp.permission) || []
+                    }
+                  />
                   <UpsertFormDialog initialData={r} />
                   <DeleteButton
                     table="app_roles"
