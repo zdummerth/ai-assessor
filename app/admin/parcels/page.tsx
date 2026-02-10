@@ -9,7 +9,7 @@ import {
 import ParcelMapWrapper from "./parcel-map-wrapper";
 
 export default async function ParcelsPage() {
-  const { data: parcels, error } = await getParcelGeometries(20000);
+  const { data: parcels, error } = await getParcelGeometries(1000);
 
   if (error) {
     return <div>Error loading parcels: {error.message}</div>;

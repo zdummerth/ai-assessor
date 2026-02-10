@@ -1,0 +1,76 @@
+-- PERFORMANCE ANALYSIS: Filter Early vs Current Approach
+-- Current bottleneck: Doing expensive ST_Contains for ALL neighborhoods/wards, then filtering results
+-- This is backwards - should filter neighborhood IDs first, THEN do spatial containment
+-- ============================================================================
+-- APPROACH 1: CURRENT (FILTER LATE) - What you're running now
+-- ============================================================================
+-- LEFT JOIN geometries to ALL neighborhoods (expensive)
+-- Then WHERE cdn.id = ANY(cda_neighborhood_ids) filters AFTER join
+-- 
+-- PROS:
+--   + Simple, single query path
+--   + Works for all filter combinations
+-- 
+-- CONS:
+--   - Does ST_Contains for EVERY parcel against EVERY neighborhood
+--   - Example: 2000 parcels × 50 neighborhoods = 100,000 spatial checks
+--   - Only keeps rows where neighborhood ID matches filter (wasteful)
+--   - Sorting by CASE expression causes temp storage spillage
+--   - **ROOT CAUSE OF 5.2s delay**
+-- ============================================================================
+-- APPROACH 2: FILTER EARLY (RECOMMENDED) - Create candidate set first
+-- ============================================================================
+-- Filter neighborhood/ward IDs FIRST (cheap filtering)
+-- Then ONLY do ST_Contains against filtered candidates
+-- Example: 2000 parcels × 3 neighborhoods = 6,000 spatial checks (50x faster!)
+--
+-- PROS:
+--   + Dramatically reduces ST_Contains operations (main bottleneck)
+--   + Spatial joins happen on smaller dataset
+--   + Much better index usage
+--   + No temp storage spillage for sorting
+--   + **Should achieve 500ms-800ms for 2000 parcels**
+--
+-- CONS:
+--   - More complex function logic (conditional JOINs)
+--   - Harder to maintain (need to handle all filter combinations)
+--   - Slightly more code
+-- ============================================================================
+-- APPROACH 3: HYBRID - Materialized neighborhood lookup table
+-- ============================================================================
+-- Pre-compute which neighborhoods contain each parcel in a separate table
+-- Join against that table instead of doing runtime ST_Contains
+--
+-- PROS:
+--   + Eliminates spatial calculations entirely at query time
+--   + Linear performance even with thousands of queries
+--   + Simple JOIN operations (very fast)
+--   + Ideal for read-heavy workloads
+--   + **Should achieve 50-100ms for 2000 parcels**
+--
+-- CONS:
+--   - Requires maintaining a new table
+--   - When geometries change, must recalculate
+--   - Uses extra storage
+--   - Overkill if geometries change frequently
+-- ============================================================================
+-- RECOMMENDATION FOR YOUR SCENARIO
+-- ============================================================================
+-- Start with APPROACH 2 (Filter Early)
+-- - 5x performance improvement with minor code complexity
+-- - Easy to debug and maintain
+-- - If still slow, move to APPROACH 3 (Materialized lookup)
+--
+-- To implement APPROACH 2:
+-- - When cda_neighborhood_ids IS PROVIDED, add inner JOIN to filter those IDs first
+-- - Then LEFT JOIN only those filtered neighborhoods to the parcels
+-- - Same pattern for assessor_neighborhoods and wards
+-- - Use conditional logic to only do JOINs needed for the filters provided
+--
+-- Example logic:
+--   IF cda_neighborhood_ids IS NOT NULL THEN
+--     JOIN (SELECT * FROM cda_neighborhoods WHERE id = ANY(cda_neighborhood_ids)) filtered_cdn
+--     ON ST_Contains(filtered_cdn.geom, g.geom)
+--   ELSE
+--     LEFT JOIN cda_neighborhoods cdn ON ST_Contains(cdn.geom, g.geom)
+--   END IF
