@@ -1,10 +1,40 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Tables } from "@/database-types";
 
 interface ParcelSearchMapWrapperProps {
   parcels: Tables<"parcel_search_table">[];
+}
+
+type GeometryValue =
+  | {
+      type: "Polygon";
+      coordinates: number[][][];
+    }
+  | {
+      type: "MultiPolygon";
+      coordinates: number[][][][];
+    };
+
+function getCenterFromParcel(
+  parcel: Tables<"parcel_search_table"> | undefined,
+): [number, number] | null {
+  if (!parcel) return null;
+  const geometry = parcel.geometry as GeometryValue | null;
+  if (!geometry) return null;
+
+  const coordinates =
+    geometry.type === "Polygon"
+      ? geometry.coordinates
+      : geometry.coordinates[0];
+
+  const firstRing = coordinates?.[0];
+  if (!firstRing || firstRing.length === 0) return null;
+  const [lng, lat] = firstRing[0];
+  return [lat, lng];
 }
 
 const ParcelSearchMap = dynamic(() => import("./parcel-search-map"), {
@@ -19,5 +49,42 @@ const ParcelSearchMap = dynamic(() => import("./parcel-search-map"), {
 export default function ParcelSearchMapWrapper({
   parcels,
 }: ParcelSearchMapWrapperProps) {
-  return <ParcelSearchMap parcels={parcels} />;
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const { push } = useRouter();
+  const focusParcelIdParam = searchParams.get("focus_parcel_id");
+  const focusParcelId = focusParcelIdParam
+    ? parseInt(focusParcelIdParam, 10)
+    : undefined;
+
+  const urlLat = searchParams.get("center_lat");
+  const urlLng = searchParams.get("center_lng");
+  const defaultCenter = useMemo<[number, number]>(() => {
+    if (urlLat && urlLng) {
+      const lat = Number(urlLat);
+      const lng = Number(urlLng);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        return [lat, lng] as [number, number];
+      }
+    }
+    const firstCenter = getCenterFromParcel(parcels[0]);
+    return firstCenter || ([38.627, -90.199] as [number, number]);
+  }, [urlLat, urlLng, parcels]);
+
+  useEffect(() => {
+    if (!urlLat || !urlLng) {
+      const params = new URLSearchParams(searchParams);
+      params.set("center_lat", defaultCenter[0].toString());
+      params.set("center_lng", defaultCenter[1].toString());
+      push(`${pathname}?${params.toString()}`);
+    }
+  }, [urlLat, urlLng, defaultCenter, searchParams, pathname, push]);
+
+  return (
+    <ParcelSearchMap
+      parcels={parcels}
+      focusParcelId={focusParcelId}
+      defaultCenter={defaultCenter}
+    />
+  );
 }

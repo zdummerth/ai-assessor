@@ -1,6 +1,7 @@
 "use client";
 
-import { MapContainer, TileLayer, Polygon, Popup } from "react-leaflet";
+import { useMemo, useEffect } from "react";
+import { MapContainer, TileLayer, Polygon, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LatLngExpression } from "leaflet";
 import type { Tables } from "@/database-types";
@@ -17,6 +18,8 @@ type GeometryValue =
 
 interface ParcelSearchMapProps {
   parcels: Tables<"parcel_search_table">[];
+  focusParcelId?: number;
+  defaultCenter?: [number, number];
 }
 
 function convertPolygonToLatLng(
@@ -36,12 +39,12 @@ function getPolygons(geometry: GeometryValue | null): LatLngExpression[][][] {
   return geometry.coordinates.map((polygon) => convertPolygonToLatLng(polygon));
 }
 
-function getCenter(parcels: Tables<"parcel_search_table">[]): [number, number] {
-  if (parcels.length === 0) return [38.627, -90.199];
-
-  const firstParcel = parcels[0];
-  const geometry = firstParcel.geometry as GeometryValue | null;
-  if (!geometry) return [38.627, -90.199];
+function getCenterFromParcel(
+  parcel: Tables<"parcel_search_table"> | undefined,
+): [number, number] | null {
+  if (!parcel) return null;
+  const geometry = parcel.geometry as GeometryValue | null;
+  if (!geometry) return null;
 
   const polygons = getPolygons(geometry);
   if (polygons.length > 0 && polygons[0].length > 0) {
@@ -52,19 +55,139 @@ function getCenter(parcels: Tables<"parcel_search_table">[]): [number, number] {
     }
   }
 
-  return [38.627, -90.199];
+  return null;
 }
 
-export default function ParcelSearchMap({ parcels }: ParcelSearchMapProps) {
-  const center = getCenter(parcels);
+function MapUpdater({ center }: { center: [number, number] }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.setView(center);
+  }, [center, map]);
+
+  return null;
+}
+
+function renderValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function buildDetailRows(parcel: Tables<"parcel_search_table">) {
+  const geometry = parcel.geometry as GeometryValue | null;
+  return [
+    ["ID", parcel.id],
+    ["Parcel ID", parcel.parcel_id],
+    ["Collector Parcel ID", parcel.collector_parcel_id],
+    ["Address Number", parcel.low_address_number],
+    ["Address Suffix", parcel.low_address_suffix],
+    ["Street Prefix", parcel.street_prefix_direction],
+    ["Street Name", parcel.street_name],
+    ["Street Type", parcel.street_type],
+    ["Unit", parcel.std_unit_number],
+    ["Zip", parcel.zip],
+    ["Owner Name", parcel.owner_name],
+    ["Owner Name 2", parcel.owner_name_2],
+    ["Owner Address", parcel.owner_address],
+    ["Owner City", parcel.owner_city],
+    ["Owner State", parcel.owner_state],
+    ["Owner Zip", parcel.owner_zip],
+    ["Owner Country", parcel.owner_country],
+    ["Geo Handle", parcel.geo_handle],
+    ["Class Code", parcel.class_code],
+    ["Occupancy", parcel.occupancy],
+    ["Abatement Type", parcel.abatement_type],
+    ["Abatement Start", parcel.abatement_start_year],
+    ["Abatement End", parcel.abatement_end_year],
+    ["SBD District 1", parcel.sbd_district_1],
+    ["SBD District 2", parcel.sbd_district_2],
+    ["SBD District 3", parcel.sbd_district_3],
+    ["TIF District", parcel.tif_district],
+    ["Land Area", parcel.land_area],
+    ["Assessed Land", parcel.assessed_land],
+    ["Assessed Improvements", parcel.assessed_improvements],
+    ["Assessed Total", parcel.assessed_total],
+    ["Assessed Res Land", parcel.assessed_res_land],
+    ["Assessed Com Land", parcel.assessed_com_land],
+    ["Assessed Agr Land", parcel.assessed_agr_land],
+    ["Assessed Res Improvements", parcel.assessed_res_improvements],
+    ["Assessed Com Improvements", parcel.assessed_com_improvements],
+    ["Assessed Agr Improvements", parcel.assessed_agr_improvements],
+    ["Appraised Land", parcel.appraised_land],
+    ["Appraised Res Land", parcel.appraised_res_land],
+    ["Appraised Com Land", parcel.appraised_com_land],
+    ["Appraised Agr Land", parcel.appraised_agr_land],
+    ["Appraised Res Improvements", parcel.appraised_res_improvements],
+    ["Appraised Com Improvements", parcel.appraised_com_improvements],
+    ["Appraised Agr Improvements", parcel.appraised_agr_improvements],
+    ["Ward", parcel.ward],
+    ["CDA Neighborhood", parcel.cda_neighborhood],
+    ["Assessor Neighborhood", parcel.assessor_neighborhood],
+    ["Appraised Total", parcel.appraised_total],
+    ["Number of Apartments", parcel.number_of_apartments],
+    ["Apartments 1 Bedroom", parcel.number_of_apartments_one_bedroom],
+    ["Apartments 2 Bedroom", parcel.number_of_apartments_two_bedroom],
+    ["Apartments 3 Bedroom", parcel.number_of_apartments_three_bedroom],
+    ["Number of Units", parcel.number_of_units],
+    ["Number of Stories", parcel.number_of_stories],
+    ["Number of Garages", parcel.number_of_garages],
+    ["Number of Carports", parcel.number_of_carports],
+    ["Full Baths", parcel.number_of_full_baths],
+    ["Half Baths", parcel.number_of_half_baths],
+    ["Ground Floor Area", parcel.ground_floor_area],
+    ["Total Area", parcel.total_area],
+    ["Total Living Area", parcel.total_living_area],
+    ["Finished Basement Area", parcel.finished_basement_area],
+    ["Avg Year Built", parcel.avg_year_built],
+    ["Number of Buildings", parcel.number_of_buildings],
+    ["Building JSON", parcel.building_json],
+    ["Cost JSON", parcel.cost_json],
+    ["Struct RCNLD w/ Oby", parcel.struct_rcnld_with_oby],
+    ["Struct RCNLD w/ Oby+Land", parcel.struct_rcnld_with_oby_and_land],
+    ["Tax Status", parcel.tax_status],
+    ["Property Class", parcel.property_class],
+    ["Current Appraiser", parcel.current_appraiser],
+    ["Block", parcel.block],
+    ["Lot", parcel.lot],
+    ["Ext", parcel.ext],
+    ["Is Active", parcel.is_active],
+    ["Created At", parcel.created_at],
+    ["Updated At", parcel.updated_at],
+    ["Geometry Type", geometry?.type],
+  ] as Array<[string, unknown]>;
+}
+
+export default function ParcelSearchMap({
+  parcels,
+  focusParcelId,
+  defaultCenter,
+}: ParcelSearchMapProps) {
+  const fallbackCenter: [number, number] = [38.627, -90.199];
+  const initialCenter = useMemo<[number, number]>(() => {
+    if (defaultCenter) return defaultCenter;
+    const centerFromFirst = getCenterFromParcel(parcels[0]);
+    return centerFromFirst || fallbackCenter;
+  }, [defaultCenter, parcels]);
+
+  const focusedParcel = useMemo(
+    () => parcels.find((parcel) => parcel.id === focusParcelId),
+    [parcels, focusParcelId],
+  );
+  const focusCenter = useMemo<[number, number]>(() => {
+    const focusedCenter = getCenterFromParcel(focusedParcel);
+    return focusedCenter || initialCenter;
+  }, [focusedParcel, initialCenter]);
 
   return (
     <MapContainer
-      center={center}
-      zoom={15}
+      center={initialCenter}
+      zoom={20}
       style={{ height: "600px", width: "100%" }}
       className="rounded-lg"
     >
+      <MapUpdater center={focusCenter} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -88,11 +211,20 @@ export default function ParcelSearchMap({ parcels }: ParcelSearchMapProps) {
             }}
           >
             <Popup>
-              <div>
-                <p className="font-semibold">Parcel ID: {parcel.parcel_id}</p>
-                {parcel.collector_parcel_id && (
-                  <p>Collector ID: {parcel.collector_parcel_id}</p>
-                )}
+              <div className="max-h-[300px] w-[280px] overflow-auto text-xs">
+                <div className="font-semibold text-sm mb-2">
+                  Parcel {parcel.parcel_id || parcel.id}
+                </div>
+                <div className="space-y-1">
+                  {buildDetailRows(parcel).map(([label, value]) => (
+                    <div key={label} className="flex gap-2">
+                      <span className="font-medium text-muted-foreground">
+                        {label}:
+                      </span>
+                      <span className="break-all">{renderValue(value)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </Popup>
           </Polygon>

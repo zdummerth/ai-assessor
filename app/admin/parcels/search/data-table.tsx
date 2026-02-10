@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import type { Tables } from "@/database-types";
 
 interface ParcelsTableProps {
@@ -41,11 +42,40 @@ type SortColumn =
   | "avg_year_built"
   | "number_of_apartments";
 
+type GeometryValue =
+  | {
+      type: "Polygon";
+      coordinates: number[][][];
+    }
+  | {
+      type: "MultiPolygon";
+      coordinates: number[][][][];
+    };
+
+function getCenterFromParcel(
+  parcel: Tables<"parcel_search_table">,
+): [number, number] | null {
+  const geometry = parcel.geometry as GeometryValue | null;
+  if (!geometry) return null;
+
+  const coordinates =
+    geometry.type === "Polygon"
+      ? geometry.coordinates
+      : geometry.coordinates[0];
+
+  const firstRing = coordinates?.[0];
+  if (!firstRing || firstRing.length === 0) return null;
+  const [lng, lat] = firstRing[0];
+  return [lat, lng];
+}
+
 export default function ParcelsTable({
   parcels,
   visibleColumns,
 }: ParcelsTableProps) {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const { push } = useRouter();
   const currentSort = searchParams.get("sort") || "parcel_id";
   const currentAsc = searchParams.get("sort_asc") !== "false";
 
@@ -123,6 +153,19 @@ export default function ParcelsTable({
   };
 
   const shouldShow = (column: string) => visibleColumns.includes(column as any);
+
+  const focusOnMap = (parcelId: number) => {
+    const params = new URLSearchParams(searchParams);
+    const parcel = parcels.find((item) => item.id === parcelId);
+    const center = parcel ? getCenterFromParcel(parcel) : null;
+    params.set("view", "map");
+    params.set("focus_parcel_id", parcelId.toString());
+    if (center) {
+      params.set("center_lat", center[0].toString());
+      params.set("center_lng", center[1].toString());
+    }
+    push(`${pathname}?${params.toString()}`);
+  };
 
   return (
     <div className="space-y-4">
@@ -221,6 +264,7 @@ export default function ParcelsTable({
                   </SortHeader>
                 </th>
               )}
+              <th className="text-left p-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -276,6 +320,16 @@ export default function ParcelsTable({
                 {shouldShow("number_of_apartments") && (
                   <td className="p-3">{parcel.number_of_apartments || "—"}</td>
                 )}
+                <td className="p-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => focusOnMap(parcel.id)}
+                  >
+                    View on map
+                  </Button>
+                </td>
               </tr>
             ))}
           </tbody>

@@ -1,11 +1,19 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type VisibleColumn =
   | "parcel_id"
@@ -48,6 +56,7 @@ export default function SearchControls({
   const searchParams = useSearchParams();
   const { push } = useRouter();
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
 
   // Local state for all filter inputs
   const [localLimit, setLocalLimit] = useState(
@@ -205,6 +214,7 @@ export default function SearchControls({
     params.set("columns", localVisibleColumns.join(","));
 
     push(`${pathname}?${params.toString()}`);
+    setOpen(false);
   };
 
   const toggleColumn = (columnId: VisibleColumn) => {
@@ -217,244 +227,357 @@ export default function SearchControls({
     }
   };
 
+  const activeFilters = useMemo(
+    () =>
+      [
+        {
+          key: "min_appraised_total",
+          label: "Min Appraised",
+          value: searchParams.get("min_appraised_total"),
+        },
+        {
+          key: "max_appraised_total",
+          label: "Max Appraised",
+          value: searchParams.get("max_appraised_total"),
+        },
+        {
+          key: "min_total_living_area",
+          label: "Min Living Area",
+          value: searchParams.get("min_total_living_area"),
+        },
+        {
+          key: "max_total_living_area",
+          label: "Max Living Area",
+          value: searchParams.get("max_total_living_area"),
+        },
+        {
+          key: "min_total_area",
+          label: "Min Total Area",
+          value: searchParams.get("min_total_area"),
+        },
+        {
+          key: "max_total_area",
+          label: "Max Total Area",
+          value: searchParams.get("max_total_area"),
+        },
+        {
+          key: "min_avg_year_built",
+          label: "Min Year Built",
+          value: searchParams.get("min_avg_year_built"),
+        },
+        {
+          key: "max_avg_year_built",
+          label: "Max Year Built",
+          value: searchParams.get("max_avg_year_built"),
+        },
+        {
+          key: "min_number_of_apartments",
+          label: "Min Apartments",
+          value: searchParams.get("min_number_of_apartments"),
+        },
+        {
+          key: "max_number_of_apartments",
+          label: "Max Apartments",
+          value: searchParams.get("max_number_of_apartments"),
+        },
+      ].filter((filter) => filter.value),
+    [searchParams],
+  );
+
+  const clearFilter = (key: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.delete(key);
+    push(`${pathname}?${params.toString()}`);
+  };
+
+  const clearAllFilters = () => {
+    const params = new URLSearchParams(searchParams);
+    [
+      "min_appraised_total",
+      "max_appraised_total",
+      "min_total_living_area",
+      "max_total_living_area",
+      "min_total_area",
+      "max_total_area",
+      "min_avg_year_built",
+      "max_avg_year_built",
+      "min_number_of_apartments",
+      "max_number_of_apartments",
+    ].forEach((key) => params.delete(key));
+    push(`${pathname}?${params.toString()}`);
+  };
+
   return (
-    <form
-      onSubmit={handleApply}
-      className="bg-muted/30 p-4 rounded-lg border space-y-4"
-    >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Row Limit */}
-        <div>
-          <label htmlFor="limit" className="text-sm font-medium mb-1 block">
-            Rows to Show
-          </label>
-          <select
-            id="limit"
-            value={localLimit}
-            onChange={(e) => setLocalLimit(e.target.value)}
-            className="w-full px-2 py-2 border border-input rounded bg-background text-sm"
-          >
-            <option value="10">10 rows</option>
-            <option value="25">25 rows</option>
-            <option value="100">100 rows</option>
-          </select>
-        </div>
+    <div className="flex flex-col items-end gap-2">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline">Filters</Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-4xl z-[1000]">
+          <DialogHeader>
+            <DialogTitle>Filters</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleApply} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label
+                  htmlFor="limit"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Rows to Show
+                </label>
+                <select
+                  id="limit"
+                  value={localLimit}
+                  onChange={(e) => setLocalLimit(e.target.value)}
+                  className="w-full px-2 py-2 border border-input rounded bg-background text-sm"
+                >
+                  <option value="10">10 rows</option>
+                  <option value="25">25 rows</option>
+                  <option value="100">100 rows</option>
+                </select>
+              </div>
 
-        {/* Min Appraised Total */}
-        <div>
-          <label
-            htmlFor="min_appraised"
-            className="text-sm font-medium mb-1 block"
-          >
-            Min Appraised Total
-          </label>
-          <Input
-            id="min_appraised"
-            type="number"
-            placeholder="Min value"
-            value={localMinAppraised}
-            onChange={(e) => setLocalMinAppraised(e.target.value)}
-            className="text-sm"
-          />
-        </div>
+              <div>
+                <label
+                  htmlFor="min_appraised"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Min Appraised Total
+                </label>
+                <Input
+                  id="min_appraised"
+                  type="number"
+                  placeholder="Min value"
+                  value={localMinAppraised}
+                  onChange={(e) => setLocalMinAppraised(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
 
-        {/* Max Appraised Total */}
-        <div>
-          <label
-            htmlFor="max_appraised"
-            className="text-sm font-medium mb-1 block"
-          >
-            Max Appraised Total
-          </label>
-          <Input
-            id="max_appraised"
-            type="number"
-            placeholder="Max value"
-            value={localMaxAppraised}
-            onChange={(e) => setLocalMaxAppraised(e.target.value)}
-            className="text-sm"
-          />
-        </div>
+              <div>
+                <label
+                  htmlFor="max_appraised"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Max Appraised Total
+                </label>
+                <Input
+                  id="max_appraised"
+                  type="number"
+                  placeholder="Max value"
+                  value={localMaxAppraised}
+                  onChange={(e) => setLocalMaxAppraised(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
 
-        {/* Min Living Area */}
-        <div>
-          <label
-            htmlFor="min_living_area"
-            className="text-sm font-medium mb-1 block"
-          >
-            Min Living Area
-          </label>
-          <Input
-            id="min_living_area"
-            type="number"
-            placeholder="Min value"
-            value={localMinLivingArea}
-            onChange={(e) => setLocalMinLivingArea(e.target.value)}
-            className="text-sm"
-          />
-        </div>
+              <div>
+                <label
+                  htmlFor="min_living_area"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Min Living Area
+                </label>
+                <Input
+                  id="min_living_area"
+                  type="number"
+                  placeholder="Min value"
+                  value={localMinLivingArea}
+                  onChange={(e) => setLocalMinLivingArea(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
 
-        {/* Max Living Area */}
-        <div>
-          <label
-            htmlFor="max_living_area"
-            className="text-sm font-medium mb-1 block"
-          >
-            Max Living Area
-          </label>
-          <Input
-            id="max_living_area"
-            type="number"
-            placeholder="Max value"
-            value={localMaxLivingArea}
-            onChange={(e) => setLocalMaxLivingArea(e.target.value)}
-            className="text-sm"
-          />
-        </div>
+              <div>
+                <label
+                  htmlFor="max_living_area"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Max Living Area
+                </label>
+                <Input
+                  id="max_living_area"
+                  type="number"
+                  placeholder="Max value"
+                  value={localMaxLivingArea}
+                  onChange={(e) => setLocalMaxLivingArea(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
 
-        {/* Min Total Area */}
-        <div>
-          <label
-            htmlFor="min_total_area"
-            className="text-sm font-medium mb-1 block"
-          >
-            Min Total Area
-          </label>
-          <Input
-            id="min_total_area"
-            type="number"
-            placeholder="Min value"
-            value={localMinTotalArea}
-            onChange={(e) => setLocalMinTotalArea(e.target.value)}
-            className="text-sm"
-          />
-        </div>
+              <div>
+                <label
+                  htmlFor="min_total_area"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Min Total Area
+                </label>
+                <Input
+                  id="min_total_area"
+                  type="number"
+                  placeholder="Min value"
+                  value={localMinTotalArea}
+                  onChange={(e) => setLocalMinTotalArea(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
 
-        {/* Max Total Area */}
-        <div>
-          <label
-            htmlFor="max_total_area"
-            className="text-sm font-medium mb-1 block"
-          >
-            Max Total Area
-          </label>
-          <Input
-            id="max_total_area"
-            type="number"
-            placeholder="Max value"
-            value={localMaxTotalArea}
-            onChange={(e) => setLocalMaxTotalArea(e.target.value)}
-            className="text-sm"
-          />
-        </div>
+              <div>
+                <label
+                  htmlFor="max_total_area"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Max Total Area
+                </label>
+                <Input
+                  id="max_total_area"
+                  type="number"
+                  placeholder="Max value"
+                  value={localMaxTotalArea}
+                  onChange={(e) => setLocalMaxTotalArea(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
 
-        {/* Min Year Built */}
-        <div>
-          <label
-            htmlFor="min_year_built"
-            className="text-sm font-medium mb-1 block"
-          >
-            Min Year Built
-          </label>
-          <Input
-            id="min_year_built"
-            type="number"
-            placeholder="Min year"
-            value={localMinYearBuilt}
-            onChange={(e) => setLocalMinYearBuilt(e.target.value)}
-            className="text-sm"
-          />
-        </div>
+              <div>
+                <label
+                  htmlFor="min_year_built"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Min Year Built
+                </label>
+                <Input
+                  id="min_year_built"
+                  type="number"
+                  placeholder="Min year"
+                  value={localMinYearBuilt}
+                  onChange={(e) => setLocalMinYearBuilt(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
 
-        {/* Max Year Built */}
-        <div>
-          <label
-            htmlFor="max_year_built"
-            className="text-sm font-medium mb-1 block"
-          >
-            Max Year Built
-          </label>
-          <Input
-            id="max_year_built"
-            type="number"
-            placeholder="Max year"
-            value={localMaxYearBuilt}
-            onChange={(e) => setLocalMaxYearBuilt(e.target.value)}
-            className="text-sm"
-          />
-        </div>
+              <div>
+                <label
+                  htmlFor="max_year_built"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Max Year Built
+                </label>
+                <Input
+                  id="max_year_built"
+                  type="number"
+                  placeholder="Max year"
+                  value={localMaxYearBuilt}
+                  onChange={(e) => setLocalMaxYearBuilt(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
 
-        {/* Min Apartments */}
-        <div>
-          <label
-            htmlFor="min_apartments"
-            className="text-sm font-medium mb-1 block"
-          >
-            Min Apartments
-          </label>
-          <Input
-            id="min_apartments"
-            type="number"
-            placeholder="Min count"
-            value={localMinApartments}
-            onChange={(e) => setLocalMinApartments(e.target.value)}
-            className="text-sm"
-          />
-        </div>
+              <div>
+                <label
+                  htmlFor="min_apartments"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Min Apartments
+                </label>
+                <Input
+                  id="min_apartments"
+                  type="number"
+                  placeholder="Min count"
+                  value={localMinApartments}
+                  onChange={(e) => setLocalMinApartments(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
 
-        {/* Max Apartments */}
-        <div>
-          <label
-            htmlFor="max_apartments"
-            className="text-sm font-medium mb-1 block"
-          >
-            Max Apartments
-          </label>
-          <Input
-            id="max_apartments"
-            type="number"
-            placeholder="Max count"
-            value={localMaxApartments}
-            onChange={(e) => setLocalMaxApartments(e.target.value)}
-            className="text-sm"
-          />
-        </div>
+              <div>
+                <label
+                  htmlFor="max_apartments"
+                  className="text-sm font-medium mb-1 block"
+                >
+                  Max Apartments
+                </label>
+                <Input
+                  id="max_apartments"
+                  type="number"
+                  placeholder="Max count"
+                  value={localMaxApartments}
+                  onChange={(e) => setLocalMaxApartments(e.target.value)}
+                  className="text-sm"
+                />
+              </div>
 
-        {/* Column Visibility */}
-        <div>
-          <label className="text-sm font-medium mb-1 block">Columns</label>
-          <div className="border border-input rounded p-2 bg-background max-h-40 overflow-y-auto">
-            <div className="space-y-2">
-              {ALL_COLUMNS.map((col) => (
-                <div key={col.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`col-${col.id}`}
-                    checked={localVisibleColumns.includes(col.id)}
-                    onCheckedChange={() => toggleColumn(col.id)}
-                  />
-                  <Label
-                    htmlFor={`col-${col.id}`}
-                    className="text-xs font-normal cursor-pointer"
-                  >
-                    {col.label}
-                  </Label>
+              <div>
+                <label className="text-sm font-medium mb-1 block">
+                  Columns
+                </label>
+                <div className="border border-input rounded p-2 bg-background max-h-40 overflow-y-auto">
+                  <div className="space-y-2">
+                    {ALL_COLUMNS.map((col) => (
+                      <div key={col.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`col-${col.id}`}
+                          checked={localVisibleColumns.includes(col.id)}
+                          onCheckedChange={() => toggleColumn(col.id)}
+                        />
+                        <Label
+                          htmlFor={`col-${col.id}`}
+                          className="text-xs font-normal cursor-pointer"
+                        >
+                          {col.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Apply Button */}
-      <div className="flex justify-end">
-        <Button
-          type="submit"
-          disabled={!hasChanges || isApplying}
-          className="w-24"
-        >
-          {isApplying ? "Applying..." : "Apply"}
-        </Button>
-      </div>
-    </form>
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                disabled={!hasChanges || isApplying}
+                className="w-24"
+              >
+                {isApplying ? "Applying..." : "Apply"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {activeFilters.length > 0 && (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {activeFilters.map((filter) => (
+            <Badge
+              key={filter.key}
+              variant="secondary"
+              className="flex items-center gap-2"
+            >
+              <span>
+                {filter.label}: {filter.value}
+              </span>
+              <button
+                type="button"
+                onClick={() => clearFilter(filter.key)}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label={`Clear ${filter.label}`}
+              >
+                ×
+              </button>
+            </Badge>
+          ))}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={clearAllFilters}
+          >
+            Clear all
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }

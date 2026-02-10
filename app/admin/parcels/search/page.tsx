@@ -1,8 +1,8 @@
 import { getParcelSearchResults } from "./queries";
 import { Suspense } from "react";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
-import SearchControls from "./search-controls";
 import ParcelSearchTabs from "./parcel-search-tabs";
+import Link from "next/link";
 
 type VisibleColumn =
   | "parcel_id"
@@ -60,7 +60,7 @@ async function Parcels({
 }) {
   const { data: parcels, error } = await getParcelSearchResults(
     limit,
-    sortColumn as any,
+    sortColumn as Parameters<typeof getParcelSearchResults>[1],
     sortAscending,
     minAppraisedTotal,
     maxAppraisedTotal,
@@ -75,7 +75,17 @@ async function Parcels({
   );
 
   if (error) {
-    return <div>Error loading parcels: {error.message}</div>;
+    return (
+      <div>
+        <div>Error loading parcels: {error.message}</div>
+        <Link
+          href="/admin/parcels/search"
+          className="text-blue-500 hover:underline mt-4 inline-block"
+        >
+          Retry
+        </Link>
+      </div>
+    );
   }
 
   if (!parcels || parcels.length === 0) {
@@ -146,7 +156,6 @@ export default async function AdminParcelSearchPage({
 
   return (
     <div className="flex-1 w-full flex flex-col gap-6">
-      <SearchControls visibleColumns={columnsParam} />
       <Suspense
         key={`${limit}-${sortColumn}-${sortAscending}-${minAppraisedTotal}-${maxAppraisedTotal}-${minTotalLivingArea}-${maxTotalLivingArea}-${minTotalArea}-${maxTotalArea}-${minAvgYearBuilt}-${maxAvgYearBuilt}-${minNumberOfApartments}-${maxNumberOfApartments}-${columnsParam.join(",")}`}
         fallback={<TableSkeleton />}
