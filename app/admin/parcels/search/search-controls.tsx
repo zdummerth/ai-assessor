@@ -308,10 +308,12 @@ export default function SearchControls({
   };
 
   return (
-    <div className="flex flex-col items-end gap-2">
+    <div className="flex flex-col gap-4">
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline">Filters</Button>
+          <Button variant="outline" className="w-full">
+            Edit Filters
+          </Button>
         </DialogTrigger>
         <DialogContent className="max-w-4xl z-[1000]">
           <DialogHeader>
@@ -548,34 +550,39 @@ export default function SearchControls({
       </Dialog>
 
       {activeFilters.length > 0 && (
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {activeFilters.map((filter) => (
-            <Badge
-              key={filter.key}
-              variant="secondary"
-              className="flex items-center gap-2"
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Active Filters</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearAllFilters}
             >
-              <span>
-                {filter.label}: {filter.value}
-              </span>
-              <button
-                type="button"
-                onClick={() => clearFilter(filter.key)}
-                className="text-muted-foreground hover:text-foreground"
-                aria-label={`Clear ${filter.label}`}
+              Clear all
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {activeFilters.map((filter) => (
+              <Badge
+                key={filter.key}
+                variant="secondary"
+                className="flex items-center gap-2"
               >
-                ×
-              </button>
-            </Badge>
-          ))}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={clearAllFilters}
-          >
-            Clear all
-          </Button>
+                <span className="text-xs">
+                  {filter.label}: {filter.value}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => clearFilter(filter.key)}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label={`Clear ${filter.label}`}
+                >
+                  ×
+                </button>
+              </Badge>
+            ))}
+          </div>
         </div>
       )}
     </div>

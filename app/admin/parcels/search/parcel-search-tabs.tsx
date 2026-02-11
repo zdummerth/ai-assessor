@@ -121,51 +121,35 @@ export default function ParcelSearchTabs({
   };
 
   return (
-    <Tabs
-      value={currentView}
-      onValueChange={handleTabChange}
-      className="w-full"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <TabsList>
-          <TabsTrigger value="table">Table</TabsTrigger>
-          <TabsTrigger value="map">Map</TabsTrigger>
-        </TabsList>
-        <SearchControls visibleColumns={visibleColumns} />
-      </div>
+    <Tabs value={currentView} onValueChange={handleTabChange}>
+      <div className="flex h-[calc(100vh-90px)] w-full">
+        {/* Left Sidebar - All Controls */}
+        <div className="w-80 overflow-y-auto mr-4">
+          <div className="space-y-6">
+            {/* View Selector */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">View</label>
+              <TabsList className="w-full grid grid-cols-2">
+                <TabsTrigger value="table">Table</TabsTrigger>
+                <TabsTrigger value="map">Map</TabsTrigger>
+              </TabsList>
+            </div>
 
-      <TabsContent value="table">
-        <Card>
-          <CardHeader>
-            <CardTitle>Parcels</CardTitle>
-            <CardDescription>
-              Search and view parcel information
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ParcelsTable parcels={parcels} visibleColumns={visibleColumns} />
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="map">
-        <Card>
-          <CardHeader>
-            <CardTitle>Parcel Map</CardTitle>
-            <CardDescription>Viewing parcel geometry</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Boundary Layer:</span>
-                  <div className="flex gap-1">
+            {/* Map-specific controls */}
+            {currentView === "map" && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Boundary Layer
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
                     <Button
                       variant={
                         currentBoundary === "none" ? "default" : "outline"
                       }
                       size="sm"
                       onClick={() => handleBoundaryChange("none")}
+                      className="w-full"
                     >
                       None
                     </Button>
@@ -175,8 +159,9 @@ export default function ParcelSearchTabs({
                       }
                       size="sm"
                       onClick={() => handleBoundaryChange("cda")}
+                      className="w-full"
                     >
-                      CDA Neighborhoods
+                      CDA
                     </Button>
                     <Button
                       variant={
@@ -184,8 +169,9 @@ export default function ParcelSearchTabs({
                       }
                       size="sm"
                       onClick={() => handleBoundaryChange("assessor")}
+                      className="w-full"
                     >
-                      Assessor Neighborhoods
+                      Assessor
                     </Button>
                     <Button
                       variant={
@@ -193,18 +179,22 @@ export default function ParcelSearchTabs({
                       }
                       size="sm"
                       onClick={() => handleBoundaryChange("ward")}
+                      className="w-full"
                     >
                       Wards
                     </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Map Style:</span>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Map Style
+                  </label>
                   <Select
                     value={currentMapStyle}
                     onValueChange={handleMapStyleChange}
                   >
-                    <SelectTrigger className="w-[220px]">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select map style" />
                     </SelectTrigger>
                     <SelectContent className="z-[1000]">
@@ -225,16 +215,49 @@ export default function ParcelSearchTabs({
                   </Select>
                 </div>
               </div>
-              <ParcelSearchMapWrapper
-                parcels={parcels}
-                assessorNeighborhoods={assessorNeighborhoods}
-                cdaNeighborhoods={cdaNeighborhoods}
-                wards={wards}
-              />
+            )}
+
+            {/* Search Filters */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Filters</label>
+              <SearchControls visibleColumns={visibleColumns} />
             </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+          </div>
+        </div>
+
+        {/* Right Main Area - Content Only */}
+        <div className="w-full overflow-y-auto">
+          <TabsContent value="table" className="h-full mt-0 w-full">
+            <Card>
+              <CardHeader>
+                <CardTitle>Parcels</CardTitle>
+                <CardDescription>
+                  Search and view parcel information
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ParcelsTable
+                  parcels={parcels}
+                  visibleColumns={visibleColumns}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="map" className="h-full mt-0 w-full">
+            <Card className="h-full">
+              <CardContent>
+                <ParcelSearchMapWrapper
+                  parcels={parcels}
+                  assessorNeighborhoods={assessorNeighborhoods}
+                  cdaNeighborhoods={cdaNeighborhoods}
+                  wards={wards}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </div>
+      </div>
     </Tabs>
   );
 }

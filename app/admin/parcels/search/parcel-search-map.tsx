@@ -255,9 +255,9 @@ export default function ParcelSearchMap({
   return (
     <MapContainer
       center={initialCenter}
-      zoom={20}
+      zoom={16}
       style={{ height: "600px", width: "100%" }}
-      className="rounded-lg"
+      // className="rounded-lg"
     >
       <MapUpdater center={focusCenter} />
       <TileLayer attribution={tileConfig.attribution} url={tileConfig.url} />
