@@ -5,10 +5,6 @@ import { useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { Tables } from "@/database-types";
 
-interface ParcelSearchMapWrapperProps {
-  parcels: Tables<"parcel_search_table">[];
-}
-
 type GeometryValue =
   | {
       type: "Polygon";
@@ -18,6 +14,27 @@ type GeometryValue =
       type: "MultiPolygon";
       coordinates: number[][][][];
     };
+
+type BoundaryData = {
+  id: number;
+  name: string;
+  group: string | null;
+  geom: GeometryValue | null;
+};
+
+type MapStyle =
+  | "osm"
+  | "carto-light"
+  | "carto-dark"
+  | "stadia-light"
+  | "stadia-dark";
+
+interface ParcelSearchMapWrapperProps {
+  parcels: Tables<"parcel_search_table">[];
+  assessorNeighborhoods: BoundaryData[];
+  cdaNeighborhoods: BoundaryData[];
+  wards: BoundaryData[];
+}
 
 function getCenterFromParcel(
   parcel: Tables<"parcel_search_table"> | undefined,
@@ -48,6 +65,9 @@ const ParcelSearchMap = dynamic(() => import("./parcel-search-map"), {
 
 export default function ParcelSearchMapWrapper({
   parcels,
+  assessorNeighborhoods,
+  cdaNeighborhoods,
+  wards,
 }: ParcelSearchMapWrapperProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -56,6 +76,17 @@ export default function ParcelSearchMapWrapper({
   const focusParcelId = focusParcelIdParam
     ? parseInt(focusParcelIdParam, 10)
     : undefined;
+
+  const boundaryParam = searchParams.get("boundary") as
+    | "none"
+    | "cda"
+    | "assessor"
+    | "ward"
+    | null;
+  const boundaryType = boundaryParam || "none";
+
+  const mapStyleParam = searchParams.get("map_style") as MapStyle | null;
+  const mapStyle = mapStyleParam || "osm";
 
   const urlLat = searchParams.get("center_lat");
   const urlLng = searchParams.get("center_lng");
@@ -85,6 +116,11 @@ export default function ParcelSearchMapWrapper({
       parcels={parcels}
       focusParcelId={focusParcelId}
       defaultCenter={defaultCenter}
+      boundaryType={boundaryType}
+      mapStyle={mapStyle}
+      assessorNeighborhoods={assessorNeighborhoods}
+      cdaNeighborhoods={cdaNeighborhoods}
+      wards={wards}
     />
   );
 }

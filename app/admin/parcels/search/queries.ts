@@ -96,3 +96,34 @@ export async function getParcelById(id: number) {
 
   return { data, error };
 }
+
+export async function getAssessorNeighborhoods() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("assessor_neighborhoods")
+    .select("id, name, group, geom")
+    .order("name", { ascending: true });
+
+  // console.log("Assessor Neighborhoods Data:", data);
+  return { data, error };
+}
+
+export async function getCdaNeighborhoods() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("cda_neighborhoods")
+    .select("id, name, group, geom")
+    .order("name", { ascending: true });
+  // console.log("CDA Neighborhoods Data:", data);
+  return { data, error };
+}
+
+export async function getWards() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("wards")
+    .select("id, name, group, geom")
+    .order("name", { ascending: true });
+  console.log("Wards Data:", data);
+  return { data, error };
+}

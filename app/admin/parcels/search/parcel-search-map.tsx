@@ -16,10 +16,30 @@ type GeometryValue =
       coordinates: number[][][][];
     };
 
+interface BoundaryData {
+  id: number;
+  name: string;
+  group: string | null;
+  geom: GeometryValue | null;
+}
+
+type BoundaryType = "none" | "cda" | "assessor" | "ward";
+type MapStyle =
+  | "osm"
+  | "carto-light"
+  | "carto-dark"
+  | "stadia-light"
+  | "stadia-dark";
+
 interface ParcelSearchMapProps {
   parcels: Tables<"parcel_search_table">[];
   focusParcelId?: number;
   defaultCenter?: [number, number];
+  boundaryType?: BoundaryType;
+  mapStyle?: MapStyle;
+  assessorNeighborhoods?: BoundaryData[];
+  cdaNeighborhoods?: BoundaryData[];
+  wards?: BoundaryData[];
 }
 
 function convertPolygonToLatLng(
@@ -163,9 +183,14 @@ export default function ParcelSearchMap({
   parcels,
   focusParcelId,
   defaultCenter,
+  boundaryType = "none",
+  mapStyle = "osm",
+  assessorNeighborhoods = [],
+  cdaNeighborhoods = [],
+  wards = [],
 }: ParcelSearchMapProps) {
-  const fallbackCenter: [number, number] = [38.627, -90.199];
   const initialCenter = useMemo<[number, number]>(() => {
+    const fallbackCenter: [number, number] = [38.627, -90.199];
     if (defaultCenter) return defaultCenter;
     const centerFromFirst = getCenterFromParcel(parcels[0]);
     return centerFromFirst || fallbackCenter;
@@ -180,6 +205,53 @@ export default function ParcelSearchMap({
     return focusedCenter || initialCenter;
   }, [focusedParcel, initialCenter]);
 
+  const tileConfig = useMemo(() => {
+    switch (mapStyle) {
+      case "carto-light":
+        return {
+          url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+          attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+        };
+      case "carto-dark":
+        return {
+          url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+          attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+        };
+      case "stadia-light":
+        return {
+          url: "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png",
+          attribution:
+            "&copy; OpenStreetMap contributors &copy; Stadia Maps &copy; Stamen Design",
+        };
+      case "stadia-dark":
+        return {
+          url: "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png",
+          attribution:
+            "&copy; OpenStreetMap contributors &copy; Stadia Maps &copy; Stamen Design",
+        };
+      default:
+        return {
+          url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        };
+    }
+  }, [mapStyle]);
+
+  // Determine which boundaries to show based on boundaryType
+  const boundariesToShow = useMemo(() => {
+    switch (boundaryType) {
+      case "cda":
+        return cdaNeighborhoods;
+      case "assessor":
+        return assessorNeighborhoods;
+      case "ward":
+        return wards;
+      default:
+        return [];
+    }
+  }, [boundaryType, cdaNeighborhoods, assessorNeighborhoods, wards]);
+
   return (
     <MapContainer
       center={initialCenter}
@@ -188,11 +260,38 @@ export default function ParcelSearchMap({
       className="rounded-lg"
     >
       <MapUpdater center={focusCenter} />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <TileLayer attribution={tileConfig.attribution} url={tileConfig.url} />
 
+      {/* Render selected boundary layer */}
+      {boundariesToShow.map((boundary) => {
+        if (!boundary.geom) return null;
+        const polygons = getPolygons(boundary.geom);
+        return polygons.map((polygon, idx) => (
+          <Polygon
+            key={`boundary-${boundary.id}-${idx}`}
+            positions={polygon}
+            pathOptions={{
+              color: "#dc2626",
+              fillColor: "#dc2626",
+              fillOpacity: 0.05,
+              weight: 1.5,
+            }}
+          >
+            <Popup>
+              <div className="text-sm">
+                <div className="font-semibold">{boundary.name}</div>
+                {boundary.group && (
+                  <div className="text-xs text-muted-foreground">
+                    {boundary.group}
+                  </div>
+                )}
+              </div>
+            </Popup>
+          </Polygon>
+        ));
+      })}
+
+      {/* Render parcels with high contrast color */}
       {parcels.map((parcel) => {
         const geometry = parcel.geometry as GeometryValue | null;
         if (!geometry) return null;
@@ -204,9 +303,9 @@ export default function ParcelSearchMap({
             key={`${parcel.id}-${idx}`}
             positions={polygon}
             pathOptions={{
-              color: "#3b82f6",
-              fillColor: "#60a5fa",
-              fillOpacity: 0.3,
+              color: "#1e40af",
+              fillColor: "#3b82f6",
+              fillOpacity: 0.4,
               weight: 2,
             }}
           >

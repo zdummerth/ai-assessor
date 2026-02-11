@@ -1,4 +1,9 @@
-import { getParcelSearchResults } from "./queries";
+import {
+  getParcelSearchResults,
+  getAssessorNeighborhoods,
+  getCdaNeighborhoods,
+  getWards,
+} from "./queries";
 import { Suspense } from "react";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import ParcelSearchTabs from "./parcel-search-tabs";
@@ -26,6 +31,23 @@ const DEFAULT_VISIBLE_COLUMNS: VisibleColumn[] = [
   "appraised_total",
   "assessor_neighborhood",
 ];
+
+type GeometryValue =
+  | {
+      type: "Polygon";
+      coordinates: number[][][];
+    }
+  | {
+      type: "MultiPolygon";
+      coordinates: number[][][][];
+    };
+
+type BoundaryData = {
+  id: number;
+  name: string;
+  group: string | null;
+  geom: GeometryValue | null;
+};
 
 async function Parcels({
   limit,
@@ -74,6 +96,13 @@ async function Parcels({
     maxNumberOfApartments,
   );
 
+  // Fetch boundary data for map layers
+  const [assessorResult, cdaResult, wardsResult] = await Promise.all([
+    getAssessorNeighborhoods(),
+    getCdaNeighborhoods(),
+    getWards(),
+  ]);
+
   if (error) {
     return (
       <div>
@@ -92,7 +121,15 @@ async function Parcels({
     return <div>No parcels found.</div>;
   }
 
-  return <ParcelSearchTabs parcels={parcels} visibleColumns={visibleColumns} />;
+  return (
+    <ParcelSearchTabs
+      parcels={parcels}
+      visibleColumns={visibleColumns}
+      assessorNeighborhoods={(assessorResult.data || []) as BoundaryData[]}
+      cdaNeighborhoods={(cdaResult.data || []) as BoundaryData[]}
+      wards={(wardsResult.data || []) as BoundaryData[]}
+    />
+  );
 }
 
 export default async function AdminParcelSearchPage({
