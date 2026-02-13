@@ -150,6 +150,9 @@ export default async function AdminParcelSearchPage({
     min_number_of_apartments?: string;
     max_number_of_apartments?: string;
     columns?: string;
+    boundary?: string;
+    view?: string;
+    map_style?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -194,7 +197,7 @@ export default async function AdminParcelSearchPage({
   return (
     <div className="flex-1 w-full flex flex-col gap-6">
       <Suspense
-        key={`${limit}-${sortColumn}-${sortAscending}-${minAppraisedTotal}-${maxAppraisedTotal}-${minTotalLivingArea}-${maxTotalLivingArea}-${minTotalArea}-${maxTotalArea}-${minAvgYearBuilt}-${maxAvgYearBuilt}-${minNumberOfApartments}-${maxNumberOfApartments}-${columnsParam.join(",")}`}
+        key={`${limit}-${sortColumn}-${sortAscending}-${minAppraisedTotal}-${maxAppraisedTotal}-${minTotalLivingArea}-${maxTotalLivingArea}-${minTotalArea}-${maxTotalArea}-${minAvgYearBuilt}-${maxAvgYearBuilt}-${minNumberOfApartments}-${maxNumberOfApartments}-${columnsParam.join(",")}-${params?.boundary}-${params?.view}-${params?.map_style}`}
         fallback={<TableSkeleton />}
       >
         <Parcels

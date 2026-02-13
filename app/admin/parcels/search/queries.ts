@@ -103,8 +103,6 @@ export async function getAssessorNeighborhoods() {
     .from("assessor_neighborhoods")
     .select("id, name, group, geom")
     .order("name", { ascending: true });
-
-  // console.log("Assessor Neighborhoods Data:", data);
   return { data, error };
 }
 
@@ -114,7 +112,6 @@ export async function getCdaNeighborhoods() {
     .from("cda_neighborhoods")
     .select("id, name, group, geom")
     .order("name", { ascending: true });
-  // console.log("CDA Neighborhoods Data:", data);
   return { data, error };
 }
 
@@ -124,6 +121,5 @@ export async function getWards() {
     .from("wards")
     .select("id, name, group, geom")
     .order("name", { ascending: true });
-  console.log("Wards Data:", data);
   return { data, error };
 }

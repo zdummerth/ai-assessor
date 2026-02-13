@@ -51,6 +51,7 @@ function convertPolygonToLatLng(
 }
 
 function getPolygons(geometry: GeometryValue | null): LatLngExpression[][][] {
+  // console.log("Geometry:", geometry);
   if (!geometry) return [];
   if (geometry.type === "Polygon") {
     return [convertPolygonToLatLng(geometry.coordinates)];

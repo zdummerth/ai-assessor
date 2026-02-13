@@ -12,6 +12,9 @@ export default function AdminLayout({
         <Link href="/admin/employees">
           <Button variant="ghost">Employees</Button>
         </Link>
+        <Link href="/admin/neighborhoods/explore">
+          <Button variant="ghost">Neighborhoods</Button>
+        </Link>
       </nav>
       {children}
     </div>
