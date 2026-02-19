@@ -7,13 +7,13 @@ import {
   Polygon,
   Popup,
   Tooltip,
-  useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { LatLngExpression } from "leaflet";
-import { useEffect } from "react";
 import type { AggregatedBoundaryData } from "./page";
 import type { AggregateType } from "./queries";
+import { getTileConfig, type MapStyle } from "@/lib/map-utils";
+import { MapUpdater, ZoomTracker } from "@/components/maps/map-components";
 
 type GeometryValue =
   | {
@@ -25,23 +25,11 @@ type GeometryValue =
       coordinates: number[][][][];
     };
 
-type MapStyle =
-  | "osm"
-  | "osm-hot"
-  | "carto-light"
-  | "carto-dark"
-  | "stadia-light"
-  | "stadia-dark"
-  | "esri-worldimagery"
-  | "esri-topomap"
-  | "jawg-streets"
-  | "jawg-dark";
-
 interface NeighborhoodExplorerMapProps {
   aggregatedData: AggregatedBoundaryData[];
   aggregateType: AggregateType;
   mapStyle?: MapStyle;
-  colorByValue?: boolean;
+  colorScale?: string;
   selectedNeighborhoodNames?: Set<string>;
 }
 
@@ -59,33 +47,6 @@ function getPolygons(geometry: GeometryValue | null): LatLngExpression[][][] {
     return [convertPolygonToLatLng(geometry.coordinates)];
   }
   return geometry.coordinates.map((polygon) => convertPolygonToLatLng(polygon));
-}
-
-function MapUpdater({ center }: { center: [number, number] }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, map.getZoom());
-  }, [center, map]);
-  return null;
-}
-
-function ZoomTracker({
-  onZoomChange,
-}: {
-  onZoomChange: (zoom: number) => void;
-}) {
-  const map = useMap();
-  useEffect(() => {
-    const handleZoom = () => {
-      onZoomChange(map.getZoom());
-    };
-    map.on("zoomend", handleZoom);
-    onZoomChange(map.getZoom());
-    return () => {
-      map.off("zoomend", handleZoom);
-    };
-  }, [map, onZoomChange]);
-  return null;
 }
 
 function getTooltipFontSize(zoom: number): number {
@@ -112,7 +73,7 @@ export default function NeighborhoodExplorerMap({
   aggregatedData,
   aggregateType,
   mapStyle = "osm",
-  colorByValue = false,
+  colorScale = "none",
 }: NeighborhoodExplorerMapProps) {
   const [currentZoom, setCurrentZoom] = useState(12);
   const TOOLTIP_MIN_ZOOM = 13;
@@ -129,9 +90,27 @@ export default function NeighborhoodExplorerMap({
   }, [aggregateType]);
 
   const valueScale = useMemo(() => {
-    const values = aggregatedData
-      .map((item) => item.appraised_sum)
-      .filter((value) => typeof value === "number" && !Number.isNaN(value));
+    let values: number[] = [];
+
+    switch (colorScale) {
+      case "total_appraised":
+        values = aggregatedData
+          .map((item) => item.appraised_sum)
+          .filter((value) => typeof value === "number" && !Number.isNaN(value));
+        break;
+      case "residential":
+        values = aggregatedData
+          .map((item) => item.res_total)
+          .filter((value) => typeof value === "number" && !Number.isNaN(value));
+        break;
+      case "commercial":
+        values = aggregatedData
+          .map((item) => item.com_total)
+          .filter((value) => typeof value === "number" && !Number.isNaN(value));
+        break;
+      default:
+        return { min: 0, max: 0 };
+    }
 
     if (values.length === 0) {
       return { min: 0, max: 0 };
@@ -140,7 +119,7 @@ export default function NeighborhoodExplorerMap({
     const min = Math.min(...values);
     const max = Math.max(...values);
     return { min, max };
-  }, [aggregatedData]);
+  }, [aggregatedData, colorScale]);
 
   const valuePalette = [
     "#00c2ff",
@@ -151,9 +130,25 @@ export default function NeighborhoodExplorerMap({
     "#ff3d71",
   ];
 
-  const getValueFillColor = (value: number) => {
+  const getValueFillColor = (item: AggregatedBoundaryData) => {
     const { min, max } = valueScale;
     if (max <= min) return valuePalette[valuePalette.length - 1];
+
+    let value: number = 0;
+    switch (colorScale) {
+      case "total_appraised":
+        value = item.appraised_sum || 0;
+        break;
+      case "residential":
+        value = item.res_total || 0;
+        break;
+      case "commercial":
+        value = item.com_total || 0;
+        break;
+      default:
+        return valuePalette[valuePalette.length - 1];
+    }
+
     const ratio = Math.min(1, Math.max(0, (value - min) / (max - min)));
     const index = Math.min(
       valuePalette.length - 1,
@@ -166,52 +161,7 @@ export default function NeighborhoodExplorerMap({
     return [38.627, -90.199];
   }, []);
 
-  const tileConfig = useMemo(() => {
-    switch (mapStyle) {
-      case "osm-hot":
-        return {
-          url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        };
-      case "carto-light":
-        return {
-          url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-          attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
-        };
-      case "carto-dark":
-        return {
-          url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-          attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
-        };
-      case "stadia-light":
-        return {
-          url: "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png",
-          attribution: "&copy; OpenStreetMap contributors &copy; Stadia Maps",
-        };
-      case "stadia-dark":
-        return {
-          url: "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png",
-          attribution: "&copy; OpenStreetMap contributors &copy; Stadia Maps",
-        };
-      case "esri-worldimagery":
-        return {
-          url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-          attribution: "Tiles &copy; Esri",
-        };
-      case "esri-topomap":
-        return {
-          url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
-          attribution: "Tiles &copy; Esri",
-        };
-      default:
-        return {
-          url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-          attribution:
-            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        };
-    }
-  }, [mapStyle]);
+  const tileConfig = getTileConfig(mapStyle);
 
   return (
     <MapContainer
@@ -242,10 +192,11 @@ export default function NeighborhoodExplorerMap({
             key={`boundary-${idx}-${polyIdx}`}
             positions={polygon}
             pathOptions={{
-              color: colorByValue ? "#7c2d12" : baseColors.stroke,
-              fillColor: colorByValue
-                ? getValueFillColor(item.appraised_sum)
-                : baseColors.fill,
+              color: colorScale !== "none" ? "#7c2d12" : baseColors.stroke,
+              fillColor:
+                colorScale !== "none"
+                  ? getValueFillColor(item)
+                  : baseColors.fill,
               fillOpacity: 0.3,
               weight: 2,
             }}

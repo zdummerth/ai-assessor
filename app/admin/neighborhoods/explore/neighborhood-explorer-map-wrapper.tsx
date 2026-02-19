@@ -5,13 +5,7 @@ import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import type { AggregatedBoundaryData } from "./page";
 import type { AggregateType } from "./queries";
-
-type MapStyle =
-  | "osm"
-  | "carto-light"
-  | "carto-dark"
-  | "stadia-light"
-  | "stadia-dark";
+import type { MapStyle } from "@/lib/map-utils";
 
 interface NeighborhoodExplorerMapWrapperProps {
   aggregatedData: AggregatedBoundaryData[];
@@ -40,8 +34,7 @@ export default function NeighborhoodExplorerMapWrapper({
 
   const mapStyleParam = searchParams.get("map_style") as MapStyle | null;
   const mapStyle = mapStyleParam || "osm";
-  const colorByValueParam = searchParams.get("color_by_value") || "false";
-  const colorByValue = colorByValueParam === "true";
+  const colorScale = searchParams.get("color_scale") || "none";
 
   // Get selected neighborhood names from URL
   const filterParam = searchParams.get("filter") || "";
@@ -81,7 +74,7 @@ export default function NeighborhoodExplorerMapWrapper({
       aggregatedData={filteredData}
       aggregateType={aggregateType}
       mapStyle={mapStyle}
-      colorByValue={colorByValue}
+      colorScale={colorScale}
       selectedNeighborhoodNames={selectedNeighborhoodNames}
     />
   );

@@ -260,7 +260,7 @@ export type Database = {
           group: string | null
           id: number
           name: string
-          source_id: string | null
+          source_id: string
         }
         Insert: {
           created_at?: string
@@ -268,7 +268,7 @@ export type Database = {
           group?: string | null
           id?: number
           name: string
-          source_id?: string | null
+          source_id: string
         }
         Update: {
           created_at?: string
@@ -276,7 +276,7 @@ export type Database = {
           group?: string | null
           id?: number
           name?: string
-          source_id?: string | null
+          source_id?: string
         }
         Relationships: []
       }
@@ -395,6 +395,7 @@ export type Database = {
           block: string | null
           building_json: Json | null
           cda_neighborhood: string | null
+          centroid: unknown
           class_code: number | null
           collector_parcel_id: string | null
           cost_json: Json | null
@@ -437,6 +438,7 @@ export type Database = {
           sbd_district_1: string | null
           sbd_district_2: string | null
           sbd_district_3: string | null
+          search_text: string | null
           std_unit_number: string | null
           street_name: string | null
           street_prefix_direction: string | null
@@ -477,6 +479,7 @@ export type Database = {
           block?: string | null
           building_json?: Json | null
           cda_neighborhood?: string | null
+          centroid?: unknown
           class_code?: number | null
           collector_parcel_id?: string | null
           cost_json?: Json | null
@@ -519,6 +522,7 @@ export type Database = {
           sbd_district_1?: string | null
           sbd_district_2?: string | null
           sbd_district_3?: string | null
+          search_text?: string | null
           std_unit_number?: string | null
           street_name?: string | null
           street_prefix_direction?: string | null
@@ -559,6 +563,7 @@ export type Database = {
           block?: string | null
           building_json?: Json | null
           cda_neighborhood?: string | null
+          centroid?: unknown
           class_code?: number | null
           collector_parcel_id?: string | null
           cost_json?: Json | null
@@ -601,6 +606,7 @@ export type Database = {
           sbd_district_1?: string | null
           sbd_district_2?: string | null
           sbd_district_3?: string | null
+          search_text?: string | null
           std_unit_number?: string | null
           street_name?: string | null
           street_prefix_direction?: string | null
@@ -616,129 +622,6 @@ export type Database = {
           zip?: string | null
         }
         Relationships: []
-      }
-      parcel_snapshot: {
-        Row: {
-          app_bldg_agriculture: number | null
-          app_bldg_commercial: number | null
-          app_bldg_exempt: number | null
-          app_bldg_residential: number | null
-          app_land_agriculture: number | null
-          app_land_commercial: number | null
-          app_land_exempt: number | null
-          app_land_residential: number | null
-          app_total: number | null
-          assessment_category: string | null
-          assessment_date: string | null
-          assessment_id: number | null
-          assessor_neighborhood_id: number | null
-          bldg_agriculture: number | null
-          bldg_commercial: number | null
-          bldg_exempt: number | null
-          bldg_residential: number | null
-          cda_neighborhood_id: number | null
-          created_at: string
-          land_agriculture: number | null
-          land_commercial: number | null
-          land_exempt: number | null
-          land_residential: number | null
-          parcel_id: number
-          updated_at: string
-          ward_id: number | null
-        }
-        Insert: {
-          app_bldg_agriculture?: number | null
-          app_bldg_commercial?: number | null
-          app_bldg_exempt?: number | null
-          app_bldg_residential?: number | null
-          app_land_agriculture?: number | null
-          app_land_commercial?: number | null
-          app_land_exempt?: number | null
-          app_land_residential?: number | null
-          app_total?: number | null
-          assessment_category?: string | null
-          assessment_date?: string | null
-          assessment_id?: number | null
-          assessor_neighborhood_id?: number | null
-          bldg_agriculture?: number | null
-          bldg_commercial?: number | null
-          bldg_exempt?: number | null
-          bldg_residential?: number | null
-          cda_neighborhood_id?: number | null
-          created_at?: string
-          land_agriculture?: number | null
-          land_commercial?: number | null
-          land_exempt?: number | null
-          land_residential?: number | null
-          parcel_id: number
-          updated_at?: string
-          ward_id?: number | null
-        }
-        Update: {
-          app_bldg_agriculture?: number | null
-          app_bldg_commercial?: number | null
-          app_bldg_exempt?: number | null
-          app_bldg_residential?: number | null
-          app_land_agriculture?: number | null
-          app_land_commercial?: number | null
-          app_land_exempt?: number | null
-          app_land_residential?: number | null
-          app_total?: number | null
-          assessment_category?: string | null
-          assessment_date?: string | null
-          assessment_id?: number | null
-          assessor_neighborhood_id?: number | null
-          bldg_agriculture?: number | null
-          bldg_commercial?: number | null
-          bldg_exempt?: number | null
-          bldg_residential?: number | null
-          cda_neighborhood_id?: number | null
-          created_at?: string
-          land_agriculture?: number | null
-          land_commercial?: number | null
-          land_exempt?: number | null
-          land_residential?: number | null
-          parcel_id?: number
-          updated_at?: string
-          ward_id?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "parcel_snapshot_assessment_id_fkey"
-            columns: ["assessment_id"]
-            isOneToOne: false
-            referencedRelation: "assessments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parcel_snapshot_assessor_neighborhood_id_fkey"
-            columns: ["assessor_neighborhood_id"]
-            isOneToOne: false
-            referencedRelation: "assessor_neighborhoods"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parcel_snapshot_cda_neighborhood_id_fkey"
-            columns: ["cda_neighborhood_id"]
-            isOneToOne: false
-            referencedRelation: "cda_neighborhoods"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parcel_snapshot_parcel_id_fkey"
-            columns: ["parcel_id"]
-            isOneToOne: true
-            referencedRelation: "parcels"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parcel_snapshot_ward_id_fkey"
-            columns: ["ward_id"]
-            isOneToOne: false
-            referencedRelation: "wards"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       parcels: {
         Row: {
@@ -802,6 +685,123 @@ export type Database = {
             referencedColumns: ["name"]
           },
         ]
+      }
+      sales_summary: {
+        Row: {
+          appraised_improvements: number | null
+          appraised_land: number | null
+          appraised_total: number | null
+          avg_year_built: number | null
+          building_json: Json | null
+          centroid_x: number | null
+          centroid_y: number | null
+          cost_with_land_ratio: number | null
+          current_appraised_ratio: number | null
+          field_review_date: string | null
+          finished_basement_area: number | null
+          ground_floor_area: number | null
+          id: number
+          land_area: number | null
+          number_of_apartments: number | null
+          number_of_apartments_one_bed: number | null
+          number_of_apartments_three_bed: number | null
+          number_of_apartments_two_bed: number | null
+          number_of_buildings: number | null
+          number_of_carports: number | null
+          number_of_full_baths: number | null
+          number_of_garages: number | null
+          number_of_half_baths: number | null
+          number_of_parcels: number | null
+          number_of_stories: number | null
+          number_of_units: number | null
+          parcels_json: Json | null
+          res_cost_json: Json | null
+          sale_date: string | null
+          sale_id: number | null
+          sale_price: number | null
+          sale_type: string | null
+          struct_rcnld_with_oby: number | null
+          struct_rcnld_with_oby_and_land: number | null
+          total_area: number | null
+          total_living_area: number | null
+        }
+        Insert: {
+          appraised_improvements?: number | null
+          appraised_land?: number | null
+          appraised_total?: number | null
+          avg_year_built?: number | null
+          building_json?: Json | null
+          centroid_x?: number | null
+          centroid_y?: number | null
+          cost_with_land_ratio?: number | null
+          current_appraised_ratio?: number | null
+          field_review_date?: string | null
+          finished_basement_area?: number | null
+          ground_floor_area?: number | null
+          id?: number
+          land_area?: number | null
+          number_of_apartments?: number | null
+          number_of_apartments_one_bed?: number | null
+          number_of_apartments_three_bed?: number | null
+          number_of_apartments_two_bed?: number | null
+          number_of_buildings?: number | null
+          number_of_carports?: number | null
+          number_of_full_baths?: number | null
+          number_of_garages?: number | null
+          number_of_half_baths?: number | null
+          number_of_parcels?: number | null
+          number_of_stories?: number | null
+          number_of_units?: number | null
+          parcels_json?: Json | null
+          res_cost_json?: Json | null
+          sale_date?: string | null
+          sale_id?: number | null
+          sale_price?: number | null
+          sale_type?: string | null
+          struct_rcnld_with_oby?: number | null
+          struct_rcnld_with_oby_and_land?: number | null
+          total_area?: number | null
+          total_living_area?: number | null
+        }
+        Update: {
+          appraised_improvements?: number | null
+          appraised_land?: number | null
+          appraised_total?: number | null
+          avg_year_built?: number | null
+          building_json?: Json | null
+          centroid_x?: number | null
+          centroid_y?: number | null
+          cost_with_land_ratio?: number | null
+          current_appraised_ratio?: number | null
+          field_review_date?: string | null
+          finished_basement_area?: number | null
+          ground_floor_area?: number | null
+          id?: number
+          land_area?: number | null
+          number_of_apartments?: number | null
+          number_of_apartments_one_bed?: number | null
+          number_of_apartments_three_bed?: number | null
+          number_of_apartments_two_bed?: number | null
+          number_of_buildings?: number | null
+          number_of_carports?: number | null
+          number_of_full_baths?: number | null
+          number_of_garages?: number | null
+          number_of_half_baths?: number | null
+          number_of_parcels?: number | null
+          number_of_stories?: number | null
+          number_of_units?: number | null
+          parcels_json?: Json | null
+          res_cost_json?: Json | null
+          sale_date?: string | null
+          sale_id?: number | null
+          sale_price?: number | null
+          sale_type?: string | null
+          struct_rcnld_with_oby?: number | null
+          struct_rcnld_with_oby_and_land?: number | null
+          total_area?: number | null
+          total_living_area?: number | null
+        }
+        Relationships: []
       }
       spatial_ref_sys: {
         Row: {
@@ -1272,6 +1272,129 @@ export type Database = {
       longtransactionsenabled: { Args: never; Returns: boolean }
       normalize_number: { Args: { number_text: string }; Returns: string }
       normalize_street: { Args: { street_text: string }; Returns: string }
+      parcel_aggregation_by_assessor_neighborhood: {
+        Args: {
+          p_exclude_property_classes?: string[]
+          p_tax_statuses?: string[]
+        }
+        Returns: {
+          appraised_max: number
+          appraised_mean: number
+          appraised_median: number
+          appraised_sum: number
+          assessor_neighborhood_geom: unknown
+          assessor_neighborhood_id: number
+          assessor_neighborhood_name: string
+          com_avg: number
+          com_total: number
+          parcel_count: number
+          res_avg: number
+          res_total: number
+        }[]
+      }
+      parcel_aggregation_by_assessor_neighborhood_occupancy: {
+        Args: {
+          p_exclude_property_classes?: string[]
+          p_tax_statuses?: string[]
+        }
+        Returns: {
+          appraised_max: number
+          appraised_mean: number
+          appraised_median: number
+          appraised_sum: number
+          assessor_neighborhood_geom: unknown
+          assessor_neighborhood_id: number
+          assessor_neighborhood_name: string
+          com_avg: number
+          com_total: number
+          occupancy: string
+          parcel_count: number
+          res_avg: number
+          res_total: number
+        }[]
+      }
+      parcel_aggregation_by_cda_neighborhood: {
+        Args: {
+          p_exclude_property_classes?: string[]
+          p_tax_statuses?: string[]
+        }
+        Returns: {
+          appraised_max: number
+          appraised_mean: number
+          appraised_median: number
+          appraised_sum: number
+          cda_neighborhood_geom: unknown
+          cda_neighborhood_id: number
+          cda_neighborhood_name: string
+          com_avg: number
+          com_total: number
+          parcel_count: number
+          res_avg: number
+          res_total: number
+        }[]
+      }
+      parcel_aggregation_by_cda_neighborhood_occupancy: {
+        Args: {
+          p_exclude_property_classes?: string[]
+          p_tax_statuses?: string[]
+        }
+        Returns: {
+          appraised_max: number
+          appraised_mean: number
+          appraised_median: number
+          appraised_sum: number
+          cda_neighborhood_geom: unknown
+          cda_neighborhood_id: number
+          cda_neighborhood_name: string
+          com_avg: number
+          com_total: number
+          occupancy: string
+          parcel_count: number
+          res_avg: number
+          res_total: number
+        }[]
+      }
+      parcel_aggregation_by_ward: {
+        Args: {
+          p_exclude_property_classes?: string[]
+          p_tax_statuses?: string[]
+        }
+        Returns: {
+          appraised_max: number
+          appraised_mean: number
+          appraised_median: number
+          appraised_sum: number
+          com_avg: number
+          com_total: number
+          parcel_count: number
+          res_avg: number
+          res_total: number
+          ward_geom: unknown
+          ward_id: number
+          ward_name: string
+        }[]
+      }
+      parcel_aggregation_by_ward_occupancy: {
+        Args: {
+          p_exclude_property_classes?: string[]
+          p_tax_statuses?: string[]
+        }
+        Returns: {
+          appraised_max: number
+          appraised_mean: number
+          appraised_median: number
+          appraised_sum: number
+          com_avg: number
+          com_total: number
+          occupancy: string
+          parcel_count: number
+          res_avg: number
+          res_total: number
+          ward_geom: unknown
+          ward_id: number
+          ward_name: string
+        }[]
+      }
       parcel_search: {
         Args: {
           assessor_neighborhood_ids?: number[]
@@ -1387,6 +1510,72 @@ export type Database = {
           similarity_score: number
           street: string
           unit: string
+        }[]
+      }
+      search_parcels_with_range: {
+        Args: { result_limit?: number; search_term: string }
+        Returns: {
+          block: string
+          ext: string
+          full_address: string
+          id: number
+          lot: string
+          match_type: string
+          owner_name: string
+          parcel_id: number
+          relevance_score: number
+        }[]
+      }
+      search_sales: {
+        Args: {
+          p_assessor_neighborhood?: number
+          p_cda_neighborhood?: number
+          p_condition?: string
+          p_max_sale_date?: string
+          p_max_sale_price?: number
+          p_min_sale_date?: string
+          p_min_sale_price?: number
+          p_occupancy?: number
+          p_sort_ascending?: boolean
+          p_sort_column?: string
+        }
+        Returns: {
+          appraised_improvements: number
+          appraised_land: number
+          appraised_total: number
+          avg_year_built: number
+          building_json: Json
+          centroid_x: number
+          centroid_y: number
+          cost_with_land_ratio: number
+          current_appraised_ratio: number
+          field_review_date: string
+          finished_basement_area: number
+          ground_floor_area: number
+          id: number
+          land_area: number
+          number_of_apartments: number
+          number_of_apartments_one_bed: number
+          number_of_apartments_three_bed: number
+          number_of_apartments_two_bed: number
+          number_of_buildings: number
+          number_of_carports: number
+          number_of_full_baths: number
+          number_of_garages: number
+          number_of_half_baths: number
+          number_of_parcels: number
+          number_of_stories: number
+          number_of_units: number
+          parcels_json: Json
+          res_cost_json: Json
+          sale_date: string
+          sale_id: number
+          sale_price: number
+          sale_type: string
+          struct_rcnld_with_oby: number
+          struct_rcnld_with_oby_and_land: number
+          total_area: number
+          total_living_area: number
         }[]
       }
       show_limit: { Args: never; Returns: number }

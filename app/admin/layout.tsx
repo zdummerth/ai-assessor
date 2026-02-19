@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ParcelSearchDialog } from "@/components/parcel-search-dialog";
 
 export default function AdminLayout({
   children,
@@ -15,6 +16,10 @@ export default function AdminLayout({
         <Link href="/admin/neighborhoods/explore">
           <Button variant="ghost">Neighborhoods</Button>
         </Link>
+        <Link href="/admin/sales/search">
+          <Button variant="ghost">Sales Search</Button>
+        </Link>
+        <ParcelSearchDialog />;
       </nav>
       {children}
     </div>

@@ -4,7 +4,6 @@ import useSWR from "swr";
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import NeighborhoodExplorerTabs from "./neighborhood-explorer-tabs";
-import type { AggregatedBoundaryData } from "./page";
 import type { AggregateType } from "./queries";
 
 const AGGREGATE_TYPES: AggregateType[] = [
@@ -16,26 +15,8 @@ const AGGREGATE_TYPES: AggregateType[] = [
   "by_assessor_neighborhood_occupancy",
 ];
 
-const fetchAggregations = async (aggregateType: AggregateType) => {
-  const params = new URLSearchParams({
-    aggregate_type: aggregateType,
-    tax_statuses: "T",
-    exclude_property_classes: "Exempt",
-  });
-
-  const response = await fetch(`/api/parcel-aggregations?${params.toString()}`);
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    throw new Error(payload.error || "Failed to load neighborhood data");
-  }
-
-  const payload = (await response.json()) as {
-    data: AggregatedBoundaryData[];
-  };
-
-  return payload.data ?? [];
-};
+//@ts-expect-error - I need to do this
+const fetcher = (...args) => fetch(...args).then((res) => res.json());
 
 export default function NeighborhoodExplorerClient() {
   const searchParams = useSearchParams();
@@ -51,19 +32,33 @@ export default function NeighborhoodExplorerClient() {
     return "by_ward";
   }, [aggregateTypeParam]);
 
+  const params = new URLSearchParams({
+    aggregate_type: aggregateType,
+    tax_statuses: "T",
+    exclude_property_classes: "Exempt",
+  });
+
   const { data, error, isLoading, isValidating } = useSWR(
-    `parcel-aggregations-${aggregateType}`,
-    () => fetchAggregations(aggregateType),
+    `/api/parcel-aggregations?${params.toString()}`,
+    fetcher,
     {
-      //   revalidateOnFocus: false,
-      //   revalidateOnReconnect: false,
-      //   keepPreviousData: true,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      keepPreviousData: true,
     },
   );
 
+  console.log("NeighborhoodExplorerClient render", {
+    aggregateType,
+    data,
+    error,
+    isLoading,
+    isValidating,
+  });
+
   return (
     <NeighborhoodExplorerTabs
-      aggregatedData={data ?? []}
+      aggregatedData={data?.data ?? []}
       aggregateType={aggregateType}
       isLoading={isLoading || isValidating}
       errorMessage={error instanceof Error ? error.message : null}

@@ -3,7 +3,6 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -59,8 +58,7 @@ export default function NeighborhoodControls({
 
   const currentMapStyle = (searchParams.get("map_style") || "osm") as string;
   const filterParam = searchParams.get("filter") || "";
-  const colorByValueParam = searchParams.get("color_by_value") || "false";
-  const colorByValue = colorByValueParam === "true";
+  const colorScale = searchParams.get("color_scale") || "none";
 
   // Extract unique neighborhood names from aggregated data
   const neighborhoodNames = useMemo(() => {
@@ -119,12 +117,12 @@ export default function NeighborhoodControls({
     push(`${pathname}?${params.toString()}`);
   };
 
-  const handleColorByValueChange = (checked: boolean) => {
+  const handleColorScaleChange = (scale: string) => {
     const params = new URLSearchParams(searchParams);
-    if (checked) {
-      params.set("color_by_value", "true");
+    if (scale === "none") {
+      params.delete("color_scale");
     } else {
-      params.delete("color_by_value");
+      params.set("color_scale", scale);
     }
     push(`${pathname}?${params.toString()}`);
   };
@@ -190,21 +188,20 @@ export default function NeighborhoodControls({
           />
         </div>
 
-        {/* Color By Value Toggle */}
-        <div className="flex items-center justify-between rounded-md border p-3">
-          <div className="space-y-1">
-            <Label className="text-sm font-semibold">Value Color Scale</Label>
-            <div className="text-xs text-muted-foreground">
-              Color by total appraised value
-            </div>
-          </div>
-          <Checkbox
-            checked={colorByValue}
-            onCheckedChange={(checked) =>
-              handleColorByValueChange(Boolean(checked))
-            }
-            aria-label="Toggle value color scale"
-          />
+        {/* Color Scale Selection */}
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold block">Color Scale</Label>
+          <Select value={colorScale} onValueChange={handleColorScaleChange}>
+            <SelectTrigger className="w-full" size="sm">
+              <SelectValue placeholder="Choose color scale" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="total_appraised">Total Appraised</SelectItem>
+              <SelectItem value="residential">Residential Total</SelectItem>
+              <SelectItem value="commercial">Commercial Total</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Statistics Summary */}

@@ -48,7 +48,6 @@ export async function GET(request: Request) {
   const supabase = await createClient();
 
   const { data, error } = await supabase.rpc(
-    //@ts-expect-error - I need to figure out dynamic types for the rpc function parameters
     FUNCTION_MAP[aggregateType as keyof typeof FUNCTION_MAP],
     {
       p_tax_statuses: parsedTaxStatuses,
