@@ -19,10 +19,12 @@ export async function getSalesSearchResults(
   maxSalePrice?: number,
   minSaleDate?: string,
   maxSaleDate?: string,
-  condition?: string,
-  occupancy?: string,
-  cdaNeighborhood?: string,
-  assessorNeighborhood?: string,
+  conditions?: string[],
+  occupancies?: number[],
+  wards?: number[],
+  cdaNeighborhoods?: number[],
+  assessorNeighborhoods?: number[],
+  saleTypes?: string[],
 ) {
   const supabase = await createClient();
 
@@ -34,14 +36,20 @@ export async function getSalesSearchResults(
       p_max_sale_price: maxSalePrice || undefined,
       p_min_sale_date: minSaleDate || undefined,
       p_max_sale_date: maxSaleDate || undefined,
-      p_condition: condition || undefined,
-      p_occupancy: occupancy ? parseInt(occupancy) : undefined,
-      p_cda_neighborhood: cdaNeighborhood
-        ? parseInt(cdaNeighborhood)
-        : undefined,
-      p_assessor_neighborhood: assessorNeighborhood
-        ? parseInt(assessorNeighborhood)
-        : undefined,
+      p_conditions:
+        conditions && conditions.length > 0 ? conditions : undefined,
+      p_occupancies:
+        occupancies && occupancies.length > 0 ? occupancies : undefined,
+      p_wards: wards && wards.length > 0 ? wards : undefined,
+      p_cda_neighborhoods:
+        cdaNeighborhoods && cdaNeighborhoods.length > 0
+          ? cdaNeighborhoods
+          : undefined,
+      p_assessor_neighborhoods:
+        assessorNeighborhoods && assessorNeighborhoods.length > 0
+          ? assessorNeighborhoods
+          : undefined,
+      p_sale_types: saleTypes && saleTypes.length > 0 ? saleTypes : undefined,
     })
     .limit(limit);
 

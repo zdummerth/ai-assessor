@@ -18,10 +18,12 @@ export default function SalesSearchClient() {
   const maxPrice = searchParams.get("max_price");
   const minDate = searchParams.get("min_date");
   const maxDate = searchParams.get("max_date");
-  const condition = searchParams.get("condition");
-  const occupancy = searchParams.get("occupancy");
-  const cdaNeighborhood = searchParams.get("cda_neighborhood");
-  const assessorNeighborhood = searchParams.get("assessor_neighborhood");
+  const conditions = searchParams.get("conditions");
+  const occupancies = searchParams.get("occupancies");
+  const wards = searchParams.get("wards");
+  const cdaNeighborhoods = searchParams.get("cda_neighborhoods");
+  const assessorNeighborhoods = searchParams.get("assessor_neighborhoods");
+  const saleTypes = searchParams.get("sale_types");
   const sort = searchParams.get("sort") || "sale_date";
   const sortAsc = searchParams.get("sort_asc") || "false";
   const limit = searchParams.get("limit") || "50";
@@ -30,11 +32,13 @@ export default function SalesSearchClient() {
   if (maxPrice) params.set("max_price", maxPrice);
   if (minDate) params.set("min_date", minDate);
   if (maxDate) params.set("max_date", maxDate);
-  if (condition) params.set("condition", condition);
-  if (occupancy) params.set("occupancy", occupancy);
-  if (cdaNeighborhood) params.set("cda_neighborhood", cdaNeighborhood);
-  if (assessorNeighborhood)
-    params.set("assessor_neighborhood", assessorNeighborhood);
+  if (conditions) params.set("conditions", conditions);
+  if (occupancies) params.set("occupancies", occupancies);
+  if (wards) params.set("wards", wards);
+  if (cdaNeighborhoods) params.set("cda_neighborhoods", cdaNeighborhoods);
+  if (assessorNeighborhoods)
+    params.set("assessor_neighborhoods", assessorNeighborhoods);
+  if (saleTypes) params.set("sale_types", saleTypes);
   params.set("sort", sort);
   params.set("sort_asc", sortAsc);
   params.set("limit", limit);
@@ -45,16 +49,8 @@ export default function SalesSearchClient() {
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      keepPreviousData: true,
     },
   );
-
-  console.log("SalesSearchClient render", {
-    data,
-    error,
-    isLoading,
-    isValidating,
-  });
 
   return (
     <SalesSearchTabs

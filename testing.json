@@ -1,110 +1,33 @@
 [
   {
+    "parcel_id": 40791200,
+    "sale_year": 2025,
+    "block": 4079,
+    "lot": "120",
+    "ext": 0,
+    "tax_status": "T",
+    "property_class": "Residential",
+    "class_code": 100,
     "occupancy": 1110,
-    "total_sale_amount": 13128824,
-    "mean_sale_amount": 135349,
-    "median_sale_amount": 115000,
-    "min_sale_amount": 10000,
-    "max_sale_amount": 405000,
-    "number_of_sales": 97
-  },
-  {
-    "occupancy": 1111,
-    "total_sale_amount": 357500,
-    "mean_sale_amount": 178750,
-    "median_sale_amount": 178750,
-    "min_sale_amount": 177500,
-    "max_sale_amount": 180000,
-    "number_of_sales": 2
-  },
-  {
-    "occupancy": 1120,
-    "total_sale_amount": 2627858,
-    "mean_sale_amount": 138308,
-    "median_sale_amount": 129050,
-    "min_sale_amount": 50000,
-    "max_sale_amount": 275000,
-    "number_of_sales": 19
-  },
-  {
-    "occupancy": 1140,
-    "total_sale_amount": 2046800,
-    "mean_sale_amount": 186073,
-    "median_sale_amount": 195000,
-    "min_sale_amount": 65000,
-    "max_sale_amount": 386000,
-    "number_of_sales": 11
-  },
-  {
-    "occupancy": 1185,
-    "total_sale_amount": 1110000,
-    "mean_sale_amount": 555000,
-    "median_sale_amount": 555000,
-    "min_sale_amount": 410000,
-    "max_sale_amount": 700000,
-    "number_of_sales": 2
-  },
-  {
-    "occupancy": 1320,
-    "total_sale_amount": 146000,
-    "mean_sale_amount": 146000,
-    "median_sale_amount": 146000,
-    "min_sale_amount": 146000,
-    "max_sale_amount": 146000,
-    "number_of_sales": 1
-  },
-  {
-    "occupancy": 5000,
-    "total_sale_amount": 565000,
-    "mean_sale_amount": 141250,
-    "median_sale_amount": 142500,
-    "min_sale_amount": 80000,
-    "max_sale_amount": 200000,
-    "number_of_sales": 4
-  },
-  {
-    "occupancy": 5300,
-    "total_sale_amount": 330000,
-    "mean_sale_amount": 330000,
-    "median_sale_amount": 330000,
-    "min_sale_amount": 330000,
-    "max_sale_amount": 330000,
-    "number_of_sales": 1
-  },
-  {
-    "occupancy": 5820,
-    "total_sale_amount": 151000,
-    "mean_sale_amount": 75500,
-    "median_sale_amount": 75500,
-    "min_sale_amount": 22000,
-    "max_sale_amount": 129000,
-    "number_of_sales": 2
-  },
-  {
-    "occupancy": 6152,
-    "total_sale_amount": 145000,
-    "mean_sale_amount": 145000,
-    "median_sale_amount": 145000,
-    "min_sale_amount": 145000,
-    "max_sale_amount": 145000,
-    "number_of_sales": 1
-  },
-  {
-    "occupancy": 6810,
-    "total_sale_amount": 145000,
-    "mean_sale_amount": 145000,
-    "median_sale_amount": 145000,
-    "min_sale_amount": 145000,
-    "max_sale_amount": 145000,
-    "number_of_sales": 1
-  },
-  {
-    "occupancy": 6811,
-    "total_sale_amount": 75000,
-    "mean_sale_amount": 75000,
-    "median_sale_amount": 75000,
-    "min_sale_amount": 75000,
-    "max_sale_amount": 75000,
-    "number_of_sales": 1
+    "low_address_number": 5127,
+    "high_address_number": 5127,
+    "street_name": "PATTISON",
+    "street_type": "AV",
+    "zip": 63110,
+    "land_area": 0,
+    "ward": 5,
+    "cda_neighborhood": 12,
+    "assessor_neighborhood": 216,
+    "sbd_district_1": 0,
+    "sbd_district_2": 0,
+    "sbd_district_3": 0,
+    "tif_district": 0,
+    "geometry": "{\"type\":\"MultiPolygon\",\"coordinates\":[[[[-90.27114707166957,38.61934844770075],[-90.27122276026296,38.61898378960803],[-90.27130849200401,38.6189926586117],[-90.27123239102119,38.61935930338406],[-90.27114707166957,38.61934844770075]]]]}",
+    "centroid": { "type": "Point", "coordinates": [-90.2712, 38.6192] },
+    "appraised_land": 9400,
+    "appraised_total": 62033,
+    "appraised_res_improvements": 52633,
+    "appraised_com_improvements": 0,
+    "appraised_agr_improvements": 0
   }
 ]

@@ -5,6 +5,7 @@ import type { Tables } from "@/database-types";
 import SalesMapWrapper from "./sales-map-wrapper";
 import SearchControls from "./search-controls";
 import SalesTable from "./data-table";
+import { NeighborhoodsLoading } from "@/components/neighborhoods-loading";
 
 interface SalesSearchTabsProps {
   salesData: Tables<"sales_summary">[];
@@ -40,8 +41,8 @@ export default function SalesSearchTabs({
 
             <TabsContent value="map">
               {isLoading && salesData.length === 0 ? (
-                <div className="h-[600px] w-full bg-muted rounded-lg flex items-center justify-center">
-                  Loading map...
+                <div className="w-full bg-muted rounded-lg flex items-center justify-center">
+                  <NeighborhoodsLoading />
                 </div>
               ) : (
                 <SalesMapWrapper sales={salesData} isLoading={isLoading} />

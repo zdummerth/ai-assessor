@@ -22,10 +22,44 @@ export async function GET(request: Request) {
   const maxSalePrice = searchParams.get("max_price");
   const minSaleDate = searchParams.get("min_date");
   const maxSaleDate = searchParams.get("max_date");
-  const condition = searchParams.get("condition");
-  const occupancy = searchParams.get("occupancy");
-  const cdaNeighborhood = searchParams.get("cda_neighborhood");
-  const assessorNeighborhood = searchParams.get("assessor_neighborhood");
+
+  // Parse pipe-separated array parameters
+  const conditions = searchParams.get("conditions")
+    ? searchParams
+        .get("conditions")!
+        .split("|")
+        .map((c) => c.trim())
+    : undefined;
+  const occupancies = searchParams.get("occupancies")
+    ? searchParams
+        .get("occupancies")!
+        .split("|")
+        .map((o) => parseInt(o.trim()))
+    : undefined;
+  const wards = searchParams.get("wards")
+    ? searchParams
+        .get("wards")!
+        .split("|")
+        .map((w) => parseInt(w.trim()))
+    : undefined;
+  const cdaNeighborhoods = searchParams.get("cda_neighborhoods")
+    ? searchParams
+        .get("cda_neighborhoods")!
+        .split("|")
+        .map((n) => parseInt(n.trim()))
+    : undefined;
+  const assessorNeighborhoods = searchParams.get("assessor_neighborhoods")
+    ? searchParams
+        .get("assessor_neighborhoods")!
+        .split("|")
+        .map((n) => parseInt(n.trim()))
+    : undefined;
+  const saleTypes = searchParams.get("sale_types")
+    ? searchParams
+        .get("sale_types")!
+        .split("|")
+        .map((s) => s.trim())
+    : undefined;
 
   const supabase = await createClient();
 
@@ -37,14 +71,12 @@ export async function GET(request: Request) {
       p_max_sale_price: maxSalePrice ? parseInt(maxSalePrice) : undefined,
       p_min_sale_date: minSaleDate || undefined,
       p_max_sale_date: maxSaleDate || undefined,
-      p_condition: condition || undefined,
-      p_occupancy: occupancy ? parseInt(occupancy) : undefined,
-      p_cda_neighborhood: cdaNeighborhood
-        ? parseInt(cdaNeighborhood)
-        : undefined,
-      p_assessor_neighborhood: assessorNeighborhood
-        ? parseInt(assessorNeighborhood)
-        : undefined,
+      p_conditions: conditions || undefined,
+      p_occupancies: occupancies || undefined,
+      p_wards: wards || undefined,
+      p_cda_neighborhoods: cdaNeighborhoods || undefined,
+      p_assessor_neighborhoods: assessorNeighborhoods || undefined,
+      p_sale_types: saleTypes || undefined,
     })
     .limit(limit);
 

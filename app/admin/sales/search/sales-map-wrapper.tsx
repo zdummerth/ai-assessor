@@ -43,6 +43,15 @@ export default function SalesMapWrapper({
   const mapStyle = mapStyleParam || "osm";
 
   const showBoundaries = searchParams.get("show_boundaries") || "none";
+  const wards = searchParams.get("wards") || "";
+  const cdaNeighborhoods = searchParams.get("cda_neighborhoods") || "";
+  const assessorNeighborhoods =
+    searchParams.get("assessor_neighborhoods") || "";
+  const geometryView =
+    (searchParams.get("geometry_view") as
+      | "centroids"
+      | "parcels"
+      | "heatmap") || "centroids";
 
   // Fetch boundaries if needed
   const shouldFetchBoundaries =
@@ -51,8 +60,36 @@ export default function SalesMapWrapper({
       showBoundaries,
     );
 
+  const boundariesUrl = useMemo(() => {
+    if (!shouldFetchBoundaries) {
+      return null;
+    }
+
+    const params = new URLSearchParams({ type: showBoundaries });
+
+    if (showBoundaries === "wards" && wards) {
+      params.set("ids", wards);
+    }
+
+    if (showBoundaries === "cda_neighborhoods" && cdaNeighborhoods) {
+      params.set("ids", cdaNeighborhoods);
+    }
+
+    if (showBoundaries === "assessor_neighborhoods" && assessorNeighborhoods) {
+      params.set("ids", assessorNeighborhoods);
+    }
+
+    return `/api/boundaries?${params.toString()}`;
+  }, [
+    shouldFetchBoundaries,
+    showBoundaries,
+    wards,
+    cdaNeighborhoods,
+    assessorNeighborhoods,
+  ]);
+
   const { data: boundariesData, isLoading: boundariesLoading } = useSWR(
-    shouldFetchBoundaries ? `/api/boundaries?type=${showBoundaries}` : null,
+    boundariesUrl,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -82,6 +119,7 @@ export default function SalesMapWrapper({
       mapStyle={mapStyle}
       boundaries={boundaries}
       boundaryType={showBoundaries as BoundaryType}
+      geometryView={geometryView}
     />
   );
 }

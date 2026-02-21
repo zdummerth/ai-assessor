@@ -8,10 +8,12 @@ CREATE OR REPLACE FUNCTION public.search_sales(
   p_max_sale_price INT DEFAULT NULL,
   p_min_sale_date DATE DEFAULT NULL,
   p_max_sale_date DATE DEFAULT NULL,
-  p_condition TEXT DEFAULT NULL,
-  p_occupancy INT DEFAULT NULL,
-  p_cda_neighborhood INT DEFAULT NULL,
-  p_assessor_neighborhood INT DEFAULT NULL
+  p_conditions TEXT[] DEFAULT NULL,
+  p_occupancies INT[] DEFAULT NULL,
+  p_cda_neighborhoods INT[] DEFAULT NULL,
+  p_assessor_neighborhoods INT[] DEFAULT NULL,
+  p_wards INT[] DEFAULT NULL,
+  p_sale_types TEXT[] DEFAULT NULL
 )
 RETURNS TABLE(
   id BIGINT,
@@ -96,33 +98,46 @@ BEGIN
     AND (p_max_sale_price IS NULL OR s.sale_price <= p_max_sale_price)
     AND (p_min_sale_date IS NULL OR s.sale_date >= p_min_sale_date)
     AND (p_max_sale_date IS NULL OR s.sale_date <= p_max_sale_date)
+    AND (p_sale_types IS NULL OR array_length(p_sale_types, 1) IS NULL OR s.sale_type = ANY(p_sale_types))
     AND (
-      p_condition IS NULL 
-      OR jsonb_path_exists(
-        (s.res_cost_json #>> '{}')::jsonb, 
-        ('$[*] ? (@.condition == "' || p_condition || '")')::jsonpath
-      )
+      p_conditions IS NULL 
+      OR array_length(p_conditions, 1) IS NULL
+      OR (s.res_cost_json IS NOT NULL AND EXISTS (
+        SELECT 1 FROM jsonb_array_elements((s.res_cost_json #>> '{}')::jsonb) AS elem
+        WHERE LOWER(TRIM(elem->>'condition')) = ANY(SELECT LOWER(TRIM(c)) FROM UNNEST(p_conditions) AS c)
+      ))
     )
     AND (
-      p_occupancy IS NULL 
-      OR jsonb_path_exists(
-        (s.parcels_json #>> '{}')::jsonb, 
-        ('$[*] ? (@.occupancy == ' || p_occupancy || ')')::jsonpath
-      )
+      p_occupancies IS NULL 
+      OR array_length(p_occupancies, 1) IS NULL
+      OR (s.parcels_json IS NOT NULL AND EXISTS (
+        SELECT 1 FROM jsonb_array_elements((s.parcels_json #>> '{}')::jsonb) AS elem
+        WHERE (elem->>'occupancy')::INTEGER = ANY(p_occupancies)
+      ))
     )
     AND (
-      p_cda_neighborhood IS NULL 
-      OR jsonb_path_exists(
-        (s.parcels_json #>> '{}')::jsonb, 
-        ('$[*] ? (@.cda_neighborhood == ' || p_cda_neighborhood || ')')::jsonpath
-      )
+      p_cda_neighborhoods IS NULL 
+      OR array_length(p_cda_neighborhoods, 1) IS NULL
+      OR (s.parcels_json IS NOT NULL AND EXISTS (
+        SELECT 1 FROM jsonb_array_elements((s.parcels_json #>> '{}')::jsonb) AS elem
+        WHERE (elem->>'cda_neighborhood')::INTEGER = ANY(p_cda_neighborhoods)
+      ))
     )
     AND (
-      p_assessor_neighborhood IS NULL 
-      OR jsonb_path_exists(
-        (s.parcels_json #>> '{}')::jsonb, 
-        ('$[*] ? (@.assessor_neighborhood == ' || p_assessor_neighborhood || ')')::jsonpath
-      )
+      p_assessor_neighborhoods IS NULL 
+      OR array_length(p_assessor_neighborhoods, 1) IS NULL
+      OR (s.parcels_json IS NOT NULL AND EXISTS (
+        SELECT 1 FROM jsonb_array_elements((s.parcels_json #>> '{}')::jsonb) AS elem
+        WHERE (elem->>'assessor_neighborhood')::INTEGER = ANY(p_assessor_neighborhoods)
+      ))
+    )
+    AND (
+      p_wards IS NULL 
+      OR array_length(p_wards, 1) IS NULL
+      OR (s.parcels_json IS NOT NULL AND EXISTS (
+        SELECT 1 FROM jsonb_array_elements((s.parcels_json #>> '{}')::jsonb) AS elem
+        WHERE (elem->>'ward')::INTEGER = ANY(p_wards)
+      ))
     )
   ORDER BY
     CASE WHEN p_sort_column = 'sale_id' AND p_sort_ascending THEN s.sale_id END ASC,
