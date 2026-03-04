@@ -1,11 +1,24 @@
 "use client";
 
 import useSWR from "swr";
+import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 import SalesSearchTabs from "./sales-search-tabs";
 
-//@ts-expect-error - I need to do this
-const fetcher = (...args) => fetch(...args).then((res) => res.json());
+const fetcher = async (url: string) => {
+  const response = await fetch(url);
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message =
+      body && typeof body === "object" && "error" in body
+        ? String(body.error)
+        : `Request failed with status ${response.status}`;
+    throw new Error(message);
+  }
+
+  return body;
+};
 
 export default function SalesSearchClient() {
   const searchParams = useSearchParams();
@@ -51,6 +64,13 @@ export default function SalesSearchClient() {
       revalidateOnReconnect: false,
     },
   );
+
+  if (error) {
+    toast.error(`Error fetching sales data: ${error.message}`, {
+      duration: 5000,
+      closeButton: true,
+    });
+  }
 
   return (
     <SalesSearchTabs

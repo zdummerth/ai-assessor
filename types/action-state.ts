@@ -1,5 +1,5 @@
-export type ActionState = {
+export type ActionState<T = unknown> = {
   success: boolean;
   message: string;
-  data?: unknown;
+  data?: T;
 };

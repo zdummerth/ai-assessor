@@ -368,6 +368,39 @@ export type Database = {
           },
         ]
       }
+      neighborhood_summaries: {
+        Row: {
+          computed_at: string
+          created_at: string
+          id: number
+          metrics: Json
+          neighborhood_id: string
+          neighborhood_type: string
+          summary_type: string
+          updated_at: string
+        }
+        Insert: {
+          computed_at?: string
+          created_at?: string
+          id?: number
+          metrics: Json
+          neighborhood_id: string
+          neighborhood_type: string
+          summary_type: string
+          updated_at?: string
+        }
+        Update: {
+          computed_at?: string
+          created_at?: string
+          id?: number
+          metrics?: Json
+          neighborhood_id?: string
+          neighborhood_type?: string
+          summary_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       parcel_search_table: {
         Row: {
           abatement_end_year: number | null
@@ -1267,6 +1300,33 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_latest_neighborhood_summary: {
+        Args: {
+          p_neighborhood_id: string
+          p_neighborhood_type: string
+          p_summary_type: string
+        }
+        Returns: {
+          computed_at: string
+          created_at: string
+          id: number
+          metrics: Json
+          neighborhood_id: string
+          neighborhood_type: string
+          summary_type: string
+          updated_at: string
+        }[]
+      }
+      get_neighborhood_summaries_with_geom: {
+        Args: never
+        Returns: {
+          geom: unknown
+          latest_computed_at: string
+          neighborhood_id: string
+          neighborhood_type: string
+          summaries: Json
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
       is_admin: { Args: never; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
@@ -1512,6 +1572,25 @@ export type Database = {
           unit: string
         }[]
       }
+      search_neighborhood_summaries: {
+        Args: {
+          p_limit?: number
+          p_neighborhood_id?: string
+          p_neighborhood_type?: string
+          p_offset?: number
+          p_summary_type?: string
+        }
+        Returns: {
+          computed_at: string
+          created_at: string
+          id: number
+          metrics: Json
+          neighborhood_id: string
+          neighborhood_type: string
+          summary_type: string
+          updated_at: string
+        }[]
+      }
       search_parcels_with_range: {
         Args: { result_limit?: number; search_term: string }
         Returns: {
@@ -1528,16 +1607,18 @@ export type Database = {
       }
       search_sales: {
         Args: {
-          p_assessor_neighborhood?: number
-          p_cda_neighborhood?: number
-          p_condition?: string
+          p_assessor_neighborhoods?: number[]
+          p_cda_neighborhoods?: number[]
+          p_conditions?: string[]
           p_max_sale_date?: string
           p_max_sale_price?: number
           p_min_sale_date?: string
           p_min_sale_price?: number
-          p_occupancy?: number
+          p_occupancies?: number[]
+          p_sale_types?: string[]
           p_sort_ascending?: boolean
           p_sort_column?: string
+          p_wards?: number[]
         }
         Returns: {
           appraised_improvements: number

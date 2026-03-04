@@ -1,11 +1,20 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -171,7 +180,7 @@ const LIMIT_OPTIONS = [
 
 type CdaNeighborhoodsResponse = {
   data: {
-    source_id: number | null;
+    source_id: string | null;
     name: string | null;
   }[];
 };
@@ -192,6 +201,38 @@ type AssessorNeighborhoodsResponse = {
   }[];
 };
 
+type FilterParamName =
+  | "min_price"
+  | "max_price"
+  | "min_date"
+  | "max_date"
+  | "conditions"
+  | "occupancies"
+  | "wards"
+  | "cda_neighborhoods"
+  | "assessor_neighborhoods"
+  | "sale_types";
+
+type ActiveFilterChip = {
+  key: string;
+  label: string;
+  paramName: FilterParamName;
+  value?: string;
+};
+
+const OCCUPANCY_NAME_BY_ID = new Map(
+  OCCUPANCY_OPTIONS.map((option) => [String(option.id), option.name]),
+);
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export default function SearchControls({
   salesData,
   isLoading = false,
@@ -211,6 +252,19 @@ export default function SearchControls({
   const sortColumn = searchParams.get("sort") || "sale_date";
   const sortAsc = searchParams.get("sort_asc") || "false";
   const limit = searchParams.get("limit") || "50";
+
+  const currentMapStyleLabel =
+    MAP_STYLE_OPTIONS.find((option) => option.id === currentMapStyle)?.label ||
+    "OpenStreetMap";
+  const currentBoundaryLabel =
+    BOUNDARY_OPTIONS.find((option) => option.id === showBoundaries)?.label ||
+    "None";
+  const currentGeometryViewLabel =
+    geometryView === "centroids"
+      ? "Centroids"
+      : geometryView === "parcels"
+        ? "Parcel Geometries"
+        : "Heat Map";
 
   // Parse array params from URL (memoized to prevent dependency changes)
   const urlMinPrice = useMemo(
@@ -245,11 +299,7 @@ export default function SearchControls({
   );
   const urlCdaNeighborhoods = useMemo(
     () =>
-      searchParams
-        .get("cda_neighborhoods")
-        ?.split("|")
-        .filter(Boolean)
-        .map(Number) || [],
+      searchParams.get("cda_neighborhoods")?.split("|").filter(Boolean) || [],
     [searchParams],
   );
   const urlAssessorNeighborhoods = useMemo(
@@ -272,11 +322,110 @@ export default function SearchControls({
   const [occupancies, setOccupancies] = useState<number[]>(urlOccupancies);
   const [wards, setWards] = useState<string[]>(urlWards);
   const [cdaNeighborhoods, setCdaNeighborhoods] =
-    useState<number[]>(urlCdaNeighborhoods);
+    useState<string[]>(urlCdaNeighborhoods);
   const [assessorNeighborhoods, setAssessorNeighborhoods] = useState<string[]>(
     urlAssessorNeighborhoods,
   );
   const [saleTypes, setSaleTypes] = useState<string[]>(urlSaleTypes);
+
+  const [applyingFilters, setApplyingFilters] = useState(false);
+
+  const activeFilterChips = useMemo<ActiveFilterChip[]>(() => {
+    const chips: ActiveFilterChip[] = [];
+
+    if (urlMinPrice)
+      chips.push({
+        key: `min_price-${urlMinPrice}`,
+        label: `Min Price: ${formatCurrency(Number(urlMinPrice))}`,
+        paramName: "min_price",
+      });
+    if (urlMaxPrice)
+      chips.push({
+        key: `max_price-${urlMaxPrice}`,
+        label: `Max Price: ${formatCurrency(Number(urlMaxPrice))}`,
+        paramName: "max_price",
+      });
+    if (urlMinDate)
+      chips.push({
+        key: `min_date-${urlMinDate}`,
+        label: `From: ${urlMinDate}`,
+        paramName: "min_date",
+      });
+    if (urlMaxDate)
+      chips.push({
+        key: `max_date-${urlMaxDate}`,
+        label: `To: ${urlMaxDate}`,
+        paramName: "max_date",
+      });
+
+    urlConditions.forEach((value) => {
+      chips.push({
+        key: `conditions-${value}`,
+        label: `Condition: ${value}`,
+        paramName: "conditions",
+        value,
+      });
+    });
+
+    urlOccupancies.forEach((value) => {
+      const valueString = String(value);
+      chips.push({
+        key: `occupancies-${valueString}`,
+        label: `Occupancy: ${OCCUPANCY_NAME_BY_ID.get(valueString) ?? valueString}`,
+        paramName: "occupancies",
+        value: valueString,
+      });
+    });
+
+    urlWards.forEach((value) => {
+      chips.push({
+        key: `wards-${value}`,
+        label: `Ward: ${value}`,
+        paramName: "wards",
+        value,
+      });
+    });
+
+    urlCdaNeighborhoods.forEach((value) => {
+      chips.push({
+        key: `cda_neighborhoods-${value}`,
+        label: `CDA: ${value}`,
+        paramName: "cda_neighborhoods",
+        value,
+      });
+    });
+
+    urlAssessorNeighborhoods.forEach((value) => {
+      chips.push({
+        key: `assessor_neighborhoods-${value}`,
+        label: `Assessor: ${value}`,
+        paramName: "assessor_neighborhoods",
+        value,
+      });
+    });
+
+    urlSaleTypes.forEach((value) => {
+      chips.push({
+        key: `sale_types-${value}`,
+        label: `Sale Type: ${value}`,
+        paramName: "sale_types",
+        value,
+      });
+    });
+
+    return chips;
+  }, [
+    urlMinPrice,
+    urlMaxPrice,
+    urlMinDate,
+    urlMaxDate,
+    urlConditions,
+    urlOccupancies,
+    urlWards,
+    urlCdaNeighborhoods,
+    urlAssessorNeighborhoods,
+    urlSaleTypes,
+  ]);
 
   // Detect if there are unsaved changes
   const hasChanges = useMemo(() => {
@@ -316,6 +465,7 @@ export default function SearchControls({
   ]);
 
   const applyFilters = () => {
+    setApplyingFilters(true);
     const params = new URLSearchParams(searchParams);
 
     // Set scalar filters
@@ -346,9 +496,11 @@ export default function SearchControls({
     else params.delete("sale_types");
 
     push(`${pathname}?${params.toString()}`);
+    setApplyingFilters(false);
   };
 
   const clearFilters = () => {
+    setApplyingFilters(true);
     setMinPrice("");
     setMaxPrice("");
     setMinDate("");
@@ -373,6 +525,7 @@ export default function SearchControls({
     params.delete("sale_types");
 
     push(`${pathname}?${params.toString()}`);
+    setApplyingFilters(false);
   };
 
   const priceRange = useMemo(() => {
@@ -387,14 +540,6 @@ export default function SearchControls({
       avg: prices.reduce((a, b) => a + b, 0) / prices.length,
     };
   }, [salesData]);
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
 
   const handleMapStyleChange = (mapStyle: string) => {
     const params = new URLSearchParams(searchParams);
@@ -432,341 +577,636 @@ export default function SearchControls({
     push(`${pathname}?${params.toString()}`);
   };
 
+  const resetPendingFilters = () => {
+    setMinPrice(urlMinPrice);
+    setMaxPrice(urlMaxPrice);
+    setMinDate(urlMinDate);
+    setMaxDate(urlMaxDate);
+    setConditions(urlConditions);
+    setOccupancies(urlOccupancies);
+    setWards(urlWards);
+    setCdaNeighborhoods(urlCdaNeighborhoods);
+    setAssessorNeighborhoods(urlAssessorNeighborhoods);
+    setSaleTypes(urlSaleTypes);
+  };
+
+  const handleFiltersFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (hasChanges && !applyingFilters) {
+      applyFilters();
+    }
+  };
+
+  const handleRemoveActiveFilter = (
+    paramName: FilterParamName,
+    value?: string,
+  ) => {
+    const params = new URLSearchParams(searchParams);
+
+    if (
+      paramName === "min_price" ||
+      paramName === "max_price" ||
+      paramName === "min_date" ||
+      paramName === "max_date"
+    ) {
+      params.delete(paramName);
+
+      if (paramName === "min_price") setMinPrice("");
+      if (paramName === "max_price") setMaxPrice("");
+      if (paramName === "min_date") setMinDate("");
+      if (paramName === "max_date") setMaxDate("");
+    } else {
+      const currentValues =
+        params
+          .get(paramName)
+          ?.split("|")
+          .filter(Boolean)
+          .filter((v) => v !== value) ?? [];
+
+      if (currentValues.length > 0) {
+        params.set(paramName, currentValues.join("|"));
+      } else {
+        params.delete(paramName);
+      }
+
+      if (paramName === "conditions") setConditions(currentValues);
+      if (paramName === "occupancies")
+        setOccupancies(
+          currentValues.map((v) => Number(v)).filter(Number.isFinite),
+        );
+      if (paramName === "wards") setWards(currentValues);
+      if (paramName === "cda_neighborhoods") setCdaNeighborhoods(currentValues);
+      if (paramName === "assessor_neighborhoods")
+        setAssessorNeighborhoods(currentValues);
+      if (paramName === "sale_types") setSaleTypes(currentValues);
+    }
+
+    push(`${pathname}?${params.toString()}`);
+  };
+
+  // Keyboard shortcuts for cycling through options
+  useEffect(() => {
+    const cycleParam = (
+      paramName: string,
+      options: readonly { id: string }[],
+      currentValue: string,
+    ) => {
+      const currentIndex = options.findIndex(
+        (option) => option.id === currentValue,
+      );
+      const nextIndex =
+        currentIndex === -1 ? 0 : (currentIndex + 1) % options.length;
+      const params = new URLSearchParams(searchParams);
+      params.set(paramName, options[nextIndex].id);
+      push(`${pathname}?${params.toString()}`);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName?.toLowerCase();
+      const isTypingTarget =
+        !!target?.isContentEditable ||
+        tagName === "input" ||
+        tagName === "textarea" ||
+        tagName === "select";
+
+      if (isTypingTarget) return;
+      if (!event.ctrlKey || !event.shiftKey || event.metaKey || event.altKey)
+        return;
+
+      const key = event.key.toLowerCase();
+
+      if (key === "m") {
+        event.preventDefault();
+        cycleParam("map_style", MAP_STYLE_OPTIONS, currentMapStyle);
+      } else if (key === "b") {
+        event.preventDefault();
+        cycleParam("show_boundaries", BOUNDARY_OPTIONS, showBoundaries);
+      } else if (key === "v") {
+        event.preventDefault();
+        cycleParam(
+          "geometry_view",
+          [{ id: "centroids" }, { id: "parcels" }, { id: "heatmap" }],
+          geometryView,
+        );
+      } else if (key === "s") {
+        event.preventDefault();
+        cycleParam("sort", SORT_COLUMN_OPTIONS, sortColumn);
+      } else if (key === "d") {
+        event.preventDefault();
+        cycleParam("sort_asc", SORT_DIRECTION_OPTIONS, sortAsc);
+      } else if (key === "l") {
+        event.preventDefault();
+        cycleParam("limit", LIMIT_OPTIONS, limit);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    currentMapStyle,
+    showBoundaries,
+    geometryView,
+    sortColumn,
+    sortAsc,
+    limit,
+    searchParams,
+    pathname,
+    push,
+  ]);
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Sales Search</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Sort Controls */}
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold block">Sort By</Label>
-          <Select value={sortColumn} onValueChange={handleSortColumnChange}>
-            <SelectTrigger className="w-full" size="sm">
-              <SelectValue placeholder="Choose sort column" />
-            </SelectTrigger>
-            <SelectContent>
-              {SORT_COLUMN_OPTIONS.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Sort Direction */}
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold block">Sort Direction</Label>
-          <Select value={sortAsc} onValueChange={handleSortDirectionChange}>
-            <SelectTrigger className="w-full" size="sm">
-              <SelectValue placeholder="Choose direction" />
-            </SelectTrigger>
-            <SelectContent>
-              {SORT_DIRECTION_OPTIONS.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Result Limit */}
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold block">Result Limit</Label>
-          <Select value={limit} onValueChange={handleLimitChange}>
-            <SelectTrigger className="w-full" size="sm">
-              <SelectValue placeholder="Choose limit" />
-            </SelectTrigger>
-            <SelectContent>
-              {LIMIT_OPTIONS.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Map Style Selection */}
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold block">Map Style</Label>
-          <Select value={currentMapStyle} onValueChange={handleMapStyleChange}>
-            <SelectTrigger className="w-full" size="sm">
-              <SelectValue placeholder="Choose a map style" />
-            </SelectTrigger>
-            <SelectContent>
-              {MAP_STYLE_OPTIONS.map((style) => (
-                <SelectItem key={style.id} value={style.id}>
-                  {style.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Neighborhood Boundaries */}
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold block">Show Boundaries</Label>
-          <Select value={showBoundaries} onValueChange={handleBoundariesChange}>
-            <SelectTrigger className="w-full" size="sm">
-              <SelectValue placeholder="Choose boundaries" />
-            </SelectTrigger>
-            <SelectContent>
-              {BOUNDARY_OPTIONS.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Geometry View */}
-        <div className="space-y-2">
-          <Label className="text-sm font-semibold block">View</Label>
-          <Select value={geometryView} onValueChange={handleGeometryViewChange}>
-            <SelectTrigger className="w-full" size="sm">
-              <SelectValue placeholder="Choose view" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="centroids">Centroids</SelectItem>
-              <SelectItem value="parcels">Parcel Geometries</SelectItem>
-              <SelectItem value="heatmap">Heat Map</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="pt-4 border-t">
-          <Label className="text-sm font-semibold block mb-4">Filters</Label>
-
-          {/* Price Range */}
-          <div className="space-y-2 mb-4">
-            <Label className="text-sm font-semibold block">Price Range</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="number"
-                placeholder="Min"
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-              />
-              <Input
-                type="number"
-                placeholder="Max"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-              />
+    <>
+      {hasChanges && (
+        <div className="fixed inset-x-0 top-3 z-[950] px-4">
+          <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 rounded-lg border bg-background p-3 shadow-lg">
+            <div className="text-sm text-foreground">
+              Unsaved filter changes
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="submit"
+                form="sales-search-filters-form"
+                size="sm"
+                disabled={applyingFilters}
+              >
+                {applyingFilters ? "Applying..." : "Apply"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={resetPendingFilters}
+                disabled={applyingFilters}
+              >
+                Reset
+              </Button>
             </div>
           </div>
-
-          {/* Date Range */}
-          <div className="space-y-2 mb-4">
-            <Label className="text-sm font-semibold block">Date Range</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                type="date"
-                value={minDate}
-                onChange={(e) => setMinDate(e.target.value)}
-              />
-              <Input
-                type="date"
-                value={maxDate}
-                onChange={(e) => setMaxDate(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Conditions */}
-          <div className="space-y-3 mb-4">
-            <ComboboxGeneric<
-              (typeof CONDITION_OPTIONS)[number],
-              (typeof CONDITION_OPTIONS)[number]["id"]
-            >
-              items={CONDITION_OPTIONS}
-              value={conditions as (typeof CONDITION_OPTIONS)[number]["id"][]}
-              onValueChange={setConditions}
-              itemToValue={(item) => item.id}
-              itemToLabel={(item) => item.name}
-              label="Condition"
-              placeholder="Select conditions..."
-              isLoading={isLoading}
-            />
-          </div>
-
-          {/* Occupancies */}
-          <div className="space-y-3 mb-4">
-            <ComboboxGeneric<
-              (typeof OCCUPANCY_OPTIONS)[number],
-              (typeof OCCUPANCY_OPTIONS)[number]["id"]
-            >
-              items={OCCUPANCY_OPTIONS}
-              value={occupancies as (typeof OCCUPANCY_OPTIONS)[number]["id"][]}
-              onValueChange={setOccupancies}
-              itemToValue={(item) => item.id}
-              itemToLabel={(item) => item.name}
-              label="Occupancy Type"
-              placeholder="Select occupancy types..."
-              isLoading={isLoading}
-            />
-          </div>
-
-          {/* Sale Types */}
-          <div className="space-y-3 mb-4">
-            <ComboboxGeneric<
-              (typeof SALE_TYPE_OPTIONS)[number],
-              (typeof SALE_TYPE_OPTIONS)[number]["id"]
-            >
-              items={SALE_TYPE_OPTIONS}
-              value={saleTypes as (typeof SALE_TYPE_OPTIONS)[number]["id"][]}
-              onValueChange={setSaleTypes}
-              itemToValue={(item) => item.id}
-              itemToLabel={(item) => item.name}
-              label="Sale Type"
-              placeholder="Select sale types..."
-              isLoading={isLoading}
-            />
-          </div>
-
-          {/* Wards */}
-          <div className="space-y-3 mb-4">
-            <ComboboxGenericSWR<
-              WardsResponse,
-              { id: number; name: string; geom: unknown },
-              string
-            >
-              apiRoute="/api/wards"
-              transformData={(response) =>
-                response.data
-                  .filter(
-                    (
-                      item,
-                    ): item is { id: number; name: string; geom: unknown } =>
-                      item.id !== null && item.name !== null,
-                  )
-                  .map((item) => ({
-                    id: item.id,
-                    name: item.name,
-                    geom: item.geom,
-                  }))
-              }
-              value={wards}
-              onValueChange={setWards}
-              itemToValue={(item) => item.name}
-              itemToLabel={(item) => item.name}
-              sortItems={(items) =>
-                [...items].sort((a, b) => a.name.localeCompare(b.name))
-              }
-              label="Wards"
-              placeholder="Select wards..."
-            />
-          </div>
-
-          {/* CDA Neighborhoods */}
-          <div className="space-y-3 mb-4">
-            <ComboboxGenericSWR<
-              CdaNeighborhoodsResponse,
-              { source_id: number; name: string },
-              number
-            >
-              apiRoute="/api/cda-neighborhoods"
-              transformData={(response) =>
-                response.data
-                  .filter(
-                    (item): item is { source_id: number; name: string } =>
-                      item.source_id !== null && item.name !== null,
-                  )
-                  .map((item) => ({
-                    source_id: item.source_id,
-                    name: item.name,
-                  }))
-              }
-              value={cdaNeighborhoods}
-              onValueChange={setCdaNeighborhoods}
-              itemToValue={(item) => item.source_id}
-              itemToLabel={(item) => `${item.name}`}
-              sortItems={(items) =>
-                [...items].sort((a, b) => a.name.localeCompare(b.name))
-              }
-              label="CDA Neighborhoods"
-              placeholder="Select CDA neighborhoods..."
-            />
-          </div>
-
-          {/* Assessor Neighborhoods */}
-          <div className="space-y-3 mb-4">
-            <ComboboxGenericSWR<
-              AssessorNeighborhoodsResponse,
-              { id: number; name: string; geom: unknown },
-              string
-            >
-              apiRoute="/api/assessor-neighborhoods"
-              transformData={(response) =>
-                response.data
-                  .filter(
-                    (
-                      item,
-                    ): item is { id: number; name: string; geom: unknown } =>
-                      item.id !== null && item.name !== null,
-                  )
-                  .map((item) => ({
-                    id: item.id,
-                    name: item.name,
-                    geom: item.geom,
-                  }))
-              }
-              value={assessorNeighborhoods}
-              onValueChange={setAssessorNeighborhoods}
-              itemToValue={(item) => item.name}
-              itemToLabel={(item) => item.name}
-              sortItems={(items) =>
-                [...items].sort((a, b) => a.name.localeCompare(b.name))
-              }
-              label="Assessor Neighborhoods"
-              placeholder="Select assessor neighborhoods..."
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-4">
-            <Button
-              onClick={applyFilters}
-              disabled={!hasChanges}
-              variant={hasChanges ? "default" : "outline"}
-              size="sm"
-              className="flex-1"
-            >
-              Apply Filters{hasChanges && " *"}
-            </Button>
-            <Button
-              onClick={clearFilters}
-              variant="outline"
-              size="sm"
-              className="flex-1"
-            >
-              Clear All
-            </Button>
-          </div>
         </div>
+      )}
 
-        {/* Statistics Summary */}
-        <div className="space-y-2 pt-4 border-t">
-          <Label className="text-sm font-semibold block">Summary</Label>
-          <div className="text-sm text-muted-foreground space-y-1">
-            <div>Total Sales: {salesData.length}</div>
-            {isLoading && <div>Refreshing data...</div>}
-            {salesData.length > 0 && (
-              <>
-                <div>Avg Price: {formatCurrency(priceRange.avg)}</div>
-                <div className="text-xs">
-                  Range: {formatCurrency(priceRange.min)} -{" "}
-                  {formatCurrency(priceRange.max)}
+      <form
+        id="sales-search-filters-form"
+        onSubmit={handleFiltersFormSubmit}
+        className="space-y-0"
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Sales Search</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Sort Controls */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold block">Sort By</Label>
+              <Select value={sortColumn} onValueChange={handleSortColumnChange}>
+                <SelectTrigger className="w-full" size="sm">
+                  <SelectValue placeholder="Choose sort column" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_COLUMN_OPTIONS.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sort Direction */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold block">
+                Sort Direction
+              </Label>
+              <Select value={sortAsc} onValueChange={handleSortDirectionChange}>
+                <SelectTrigger className="w-full" size="sm">
+                  <SelectValue placeholder="Choose direction" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_DIRECTION_OPTIONS.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Result Limit */}
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold block">
+                Result Limit
+              </Label>
+              <Select value={limit} onValueChange={handleLimitChange}>
+                <SelectTrigger className="w-full" size="sm">
+                  <SelectValue placeholder="Choose limit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LIMIT_OPTIONS.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold block">
+                Map Settings
+              </Label>
+              <Dialog>
+                <div className="flex items-center justify-between gap-2 rounded-md border p-3">
+                  <div className="min-w-0 text-xs text-muted-foreground">
+                    <div className="truncate">
+                      Style: {currentMapStyleLabel}
+                    </div>
+                    <div className="truncate">
+                      Boundaries: {currentBoundaryLabel}
+                    </div>
+                    <div className="truncate">
+                      View: {currentGeometryViewLabel}
+                    </div>
+                  </div>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      Edit
+                    </Button>
+                  </DialogTrigger>
                 </div>
-              </>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+
+                <DialogContent className="z-[1000]">
+                  <DialogHeader>
+                    <DialogTitle>Map Settings</DialogTitle>
+                    <DialogDescription>
+                      Update map style, boundary layer, and geometry view.
+                    </DialogDescription>
+                  </DialogHeader>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold block">
+                        Map Style
+                      </Label>
+                      <Select
+                        value={currentMapStyle}
+                        onValueChange={handleMapStyleChange}
+                      >
+                        <SelectTrigger className="w-full" size="sm">
+                          <SelectValue placeholder="Choose a map style" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[1001]">
+                          {MAP_STYLE_OPTIONS.map((style) => (
+                            <SelectItem key={style.id} value={style.id}>
+                              {style.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold block">
+                        Show Boundaries
+                      </Label>
+                      <Select
+                        value={showBoundaries}
+                        onValueChange={handleBoundariesChange}
+                      >
+                        <SelectTrigger className="w-full" size="sm">
+                          <SelectValue placeholder="Choose boundaries" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[1001]">
+                          {BOUNDARY_OPTIONS.map((option) => (
+                            <SelectItem key={option.id} value={option.id}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold block">
+                        View
+                      </Label>
+                      <Select
+                        value={geometryView}
+                        onValueChange={handleGeometryViewChange}
+                      >
+                        <SelectTrigger className="w-full" size="sm">
+                          <SelectValue placeholder="Choose view" />
+                        </SelectTrigger>
+                        <SelectContent className="z-[1001]">
+                          <SelectItem value="centroids">Centroids</SelectItem>
+                          <SelectItem value="parcels">
+                            Parcel Geometries
+                          </SelectItem>
+                          <SelectItem value="heatmap">Heat Map</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="pt-4 border-t">
+              <Label className="text-sm font-semibold block mb-4">
+                Filters
+              </Label>
+
+              {activeFilterChips.length > 0 && (
+                <div className="mb-4">
+                  <Label className="text-xs font-medium text-muted-foreground block mb-2">
+                    Active Filters
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {activeFilterChips.map((chip) => (
+                      <Badge
+                        key={chip.key}
+                        variant="secondary"
+                        className="gap-2 py-1 pr-1"
+                      >
+                        <span
+                          className="max-w-[220px] truncate"
+                          title={chip.label}
+                        >
+                          {chip.label}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 px-1 text-xs"
+                          onClick={() =>
+                            handleRemoveActiveFilter(chip.paramName, chip.value)
+                          }
+                        >
+                          ×
+                        </Button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Price Range */}
+              <div className="space-y-2 mb-4">
+                <Label className="text-sm font-semibold block">
+                  Price Range
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Min"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Max"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Date Range */}
+              <div className="space-y-2 mb-4">
+                <Label className="text-sm font-semibold block">
+                  Date Range
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    type="date"
+                    value={minDate}
+                    onChange={(e) => setMinDate(e.target.value)}
+                  />
+                  <Input
+                    type="date"
+                    value={maxDate}
+                    onChange={(e) => setMaxDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Conditions */}
+              <div className="space-y-3 mb-4">
+                <ComboboxGeneric<
+                  (typeof CONDITION_OPTIONS)[number],
+                  (typeof CONDITION_OPTIONS)[number]["id"]
+                >
+                  items={CONDITION_OPTIONS}
+                  value={
+                    conditions as (typeof CONDITION_OPTIONS)[number]["id"][]
+                  }
+                  onValueChange={setConditions}
+                  itemToValue={(item) => item.id}
+                  itemToLabel={(item) => item.name}
+                  label="Condition"
+                  placeholder="Select conditions..."
+                  isLoading={isLoading}
+                />
+              </div>
+
+              {/* Occupancies */}
+              <div className="space-y-3 mb-4">
+                <ComboboxGeneric<
+                  (typeof OCCUPANCY_OPTIONS)[number],
+                  (typeof OCCUPANCY_OPTIONS)[number]["id"]
+                >
+                  items={OCCUPANCY_OPTIONS}
+                  value={
+                    occupancies as (typeof OCCUPANCY_OPTIONS)[number]["id"][]
+                  }
+                  onValueChange={setOccupancies}
+                  itemToValue={(item) => item.id}
+                  itemToLabel={(item) => item.name}
+                  label="Occupancy Type"
+                  placeholder="Select occupancy types..."
+                  isLoading={isLoading}
+                />
+              </div>
+
+              {/* Sale Types */}
+              <div className="space-y-3 mb-4">
+                <ComboboxGeneric<
+                  (typeof SALE_TYPE_OPTIONS)[number],
+                  (typeof SALE_TYPE_OPTIONS)[number]["id"]
+                >
+                  items={SALE_TYPE_OPTIONS}
+                  value={
+                    saleTypes as (typeof SALE_TYPE_OPTIONS)[number]["id"][]
+                  }
+                  onValueChange={setSaleTypes}
+                  itemToValue={(item) => item.id}
+                  itemToLabel={(item) => item.name}
+                  label="Sale Type"
+                  placeholder="Select sale types..."
+                  isLoading={isLoading}
+                />
+              </div>
+
+              {/* Wards */}
+              <div className="space-y-3 mb-4">
+                <ComboboxGenericSWR<
+                  WardsResponse,
+                  { id: number; name: string; geom: unknown },
+                  string
+                >
+                  apiRoute="/api/wards"
+                  transformData={(response) =>
+                    response.data
+                      .filter(
+                        (
+                          item,
+                        ): item is {
+                          id: number;
+                          name: string;
+                          geom: unknown;
+                        } => item.id !== null && item.name !== null,
+                      )
+                      .map((item) => ({
+                        id: item.id,
+                        name: item.name,
+                        geom: item.geom,
+                      }))
+                  }
+                  value={wards}
+                  onValueChange={setWards}
+                  itemToValue={(item) => item.name}
+                  itemToLabel={(item) => item.name}
+                  sortItems={(items) =>
+                    [...items].sort((a, b) => a.name.localeCompare(b.name))
+                  }
+                  label="Wards"
+                  placeholder="Select wards..."
+                />
+              </div>
+
+              {/* CDA Neighborhoods */}
+              <div className="space-y-3 mb-4">
+                <ComboboxGenericSWR<
+                  CdaNeighborhoodsResponse,
+                  { source_id: string; name: string },
+                  string
+                >
+                  apiRoute="/api/cda-neighborhoods"
+                  transformData={(response) =>
+                    response.data
+                      .filter(
+                        (item): item is { source_id: string; name: string } =>
+                          item.source_id !== null && item.name !== null,
+                      )
+                      .map((item) => ({
+                        source_id: String(item.source_id),
+                        name: item.name,
+                      }))
+                  }
+                  value={cdaNeighborhoods}
+                  onValueChange={setCdaNeighborhoods}
+                  itemToValue={(item) => item.source_id}
+                  itemToLabel={(item) => `${item.name}`}
+                  sortItems={(items) =>
+                    [...items].sort((a, b) => a.name.localeCompare(b.name))
+                  }
+                  label="CDA Neighborhoods"
+                  placeholder="Select CDA neighborhoods..."
+                />
+              </div>
+
+              {/* Assessor Neighborhoods */}
+              <div className="space-y-3 mb-4">
+                <ComboboxGenericSWR<
+                  AssessorNeighborhoodsResponse,
+                  { id: number; name: string; geom: unknown },
+                  string
+                >
+                  apiRoute="/api/assessor-neighborhoods"
+                  transformData={(response) =>
+                    response.data
+                      .filter(
+                        (
+                          item,
+                        ): item is {
+                          id: number;
+                          name: string;
+                          geom: unknown;
+                        } => item.id !== null && item.name !== null,
+                      )
+                      .map((item) => ({
+                        id: item.id,
+                        name: item.name,
+                        geom: item.geom,
+                      }))
+                  }
+                  value={assessorNeighborhoods}
+                  onValueChange={setAssessorNeighborhoods}
+                  itemToValue={(item) => item.name}
+                  itemToLabel={(item) => item.name}
+                  sortItems={(items) =>
+                    [...items].sort((a, b) => a.name.localeCompare(b.name))
+                  }
+                  label="Assessor Neighborhoods"
+                  placeholder="Select assessor neighborhoods..."
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4">
+                <Button
+                  type="submit"
+                  disabled={!hasChanges || applyingFilters}
+                  variant={hasChanges ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                >
+                  {applyingFilters
+                    ? "Applying..."
+                    : hasChanges
+                      ? "Apply Filters"
+                      : "Filters Applied"}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={clearFilters}
+                  disabled={applyingFilters}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                >
+                  {applyingFilters ? "Clearing..." : "Clear Filters"}
+                </Button>
+              </div>
+            </div>
+
+            {/* Statistics Summary */}
+            <div className="space-y-2 pt-4 border-t">
+              <Label className="text-sm font-semibold block">Summary</Label>
+              <div className="text-xs text-muted-foreground">
+                Shortcuts: Ctrl+Shift+M (Map), B (Boundaries), V (View), S
+                (Sort), D (Direction), L (Limit)
+              </div>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div>Total Sales: {salesData.length}</div>
+                {isLoading && <div>Refreshing data...</div>}
+                {salesData.length > 0 && (
+                  <>
+                    <div>Avg Price: {formatCurrency(priceRange.avg)}</div>
+                    <div className="text-xs">
+                      Range: {formatCurrency(priceRange.min)} -{" "}
+                      {formatCurrency(priceRange.max)}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </form>
+    </>
   );
 }

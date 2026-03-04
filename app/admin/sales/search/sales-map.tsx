@@ -7,6 +7,7 @@ import {
   CircleMarker,
   Popup,
   Polygon,
+  Pane,
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -168,6 +169,10 @@ export default function SalesMap({
       zoom={12}
       style={{ height: "600px", width: "100%" }}
     >
+      <Pane name="boundariesPane" style={{ zIndex: 380 }} />
+      <Pane name="salesParcelsPane" style={{ zIndex: 440 }} />
+      <Pane name="salesMarkersPane" style={{ zIndex: 650 }} />
+
       <MapUpdater center={initialCenter} />
       <TileLayer attribution={tileConfig.attribution} url={tileConfig.url} />
 
@@ -187,7 +192,7 @@ export default function SalesMap({
               key={sale.id}
               center={position}
               radius={6}
-              pane="markerPane"
+              pane="salesMarkersPane"
               pathOptions={{
                 color: "#dc2626",
                 fillColor: "#ef4444",
@@ -297,7 +302,7 @@ export default function SalesMap({
               <Polygon
                 key={`${sale.id}-parcel-${parcelIdx}-poly-${polyIdx}`}
                 positions={polygon}
-                pane="overlayPane"
+                pane="salesParcelsPane"
                 pathOptions={{
                   color: "#2563eb",
                   fillColor: "#3b82f6",
@@ -362,7 +367,7 @@ export default function SalesMap({
           <Polygon
             key={`boundary-${idx}-${polyIdx}`}
             positions={polygon}
-            pane="overlayPane"
+            pane="boundariesPane"
             pathOptions={{
               color: boundaryColors.stroke,
               fillColor: boundaryColors.fill,
