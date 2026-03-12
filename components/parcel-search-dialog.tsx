@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { AddressWithMap } from "@/components/ui/address-with-map";
 import { Search } from "lucide-react";
 
 interface ParcelSearchResult {
@@ -117,7 +118,7 @@ export function ParcelSearchDialog() {
                     <div className="flex justify-between items-start gap-4">
                       <div className="space-y-1 flex-1">
                         <div className="font-medium text-sm">
-                          {result.full_address}
+                          <AddressWithMap address={result.full_address} />
                         </div>
                         {result.owner_name && (
                           <div className="text-xs text-muted-foreground">

@@ -19,6 +19,9 @@ export default function AdminLayout({
         <Link href="/admin/sales/search">
           <Button variant="ghost">Sales Search</Button>
         </Link>
+        <Link href="/admin/neighborhood-report/search">
+          <Button variant="ghost">Neighborhood Report</Button>
+        </Link>
         <ParcelSearchDialog />;
       </nav>
       {children}

@@ -14,6 +14,7 @@ export interface ComboboxGenericProps<
   label?: string;
   placeholder?: string;
   isLoading?: boolean;
+  autoHighlight?: boolean;
   sortItems?: (items: T[]) => T[];
 }
 
@@ -29,6 +30,7 @@ export function ComboboxGeneric<
   label = "Select",
   placeholder = "Select items...",
   isLoading = false,
+  autoHighlight = false,
   sortItems,
 }: ComboboxGenericProps<T, V>) {
   const id = React.useId();
@@ -79,6 +81,7 @@ export function ComboboxGeneric<
       itemToStringLabel={itemToLabel}
       itemToStringValue={(item) => String(itemToValue(item))}
       multiple
+      autoHighlight={autoHighlight}
     >
       <div className="flex flex-col gap-1 text-sm font-medium">
         <label className="inline-flex text-inherit" htmlFor={id}>
